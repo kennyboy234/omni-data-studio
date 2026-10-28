@@ -1,0 +1,28 @@
+-- ====================================================================
+-- OMNIDATA STUDIO: SUPABASE SEED DATA & MULTI-TENANT ISOLATION TESTS
+-- ====================================================================
+
+-- Note: In production Supabase, users are registered via auth.signUp()
+-- This seed illustrates baseline ISA-95 assets and default Memory lessons.
+
+-- HOW TO TEST MULTI-TENANT ROW-LEVEL SECURITY (RLS):
+-- 1. Create two test accounts in Supabase Auth:
+--    User A: engineer_a@factory.org
+--    User B: engineer_b@plant.com
+--
+-- 2. Sign in as User A and insert a private dataset:
+--    INSERT INTO public.datasets (id, user_id, name, sha256_hash, profile_json, data_json)
+--    VALUES ('ds_user_a_secret', auth.uid(), 'Line 3 Proprietary Yield', 'hash_a', '{}'::jsonb, '[]'::jsonb);
+--
+-- 3. In the same session or via JWT for User B, execute:
+--    SELECT * FROM public.datasets;
+--    -> VERIFICATION: User B receives ZERO rows for User A's dataset!
+--
+-- 4. Attempt an unauthorized cross-tenant UPDATE or DELETE from User B:
+--    UPDATE public.datasets SET name = 'Hacked' WHERE id = 'ds_user_a_secret';
+--    -> VERIFICATION: Returns 0 rows affected (blocked by RLS policy).
+--
+-- 5. Test append-only trigger constraint:
+--    DELETE FROM public.outputs WHERE id = 'out_1';
+--    -> VERIFICATION: Aborts transaction with:
+--       "OmniData Governance Violation: Table outputs is strictly append-only."

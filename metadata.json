@@ -1,0 +1,6 @@
+{
+  "name": "OmniData Studio - Autonomous Data Science & Analytics Workbench",
+  "description": "Production-grade autonomous data science platform featuring end-to-end workflows: ingestion & profiling, data quality assertions, audit-logged cleaning, statistical EDA, feature engineering, SQL engine, ML forecasting, interactive dashboards, and executive reporting.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

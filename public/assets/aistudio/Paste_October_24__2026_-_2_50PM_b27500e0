@@ -1,0 +1,262 @@
+# OMNIDATA STUDIO: INDUSTRIAL AUTONOMY AND ENGINEERING INTELLIGENCE MODULE
+
+**Prompt for Google AI Studio. Date written: 24 October 2026.**
+
+**How to use:** Paste Section 0 first. Then paste one phase at a time (Section 9), and wait for the checklist before moving on. Pasting everything at once will produce errors.
+
+---
+
+## 0. STARTER MESSAGE (paste this first)
+
+```
+You are extending OmniData Studio. This is an ADDITIVE improvement. Do not remove, rewrite, rename, or restyle anything that already works (WF01 to WF12, The Brain, the SPSS/EViews library, the Excel grid and Tableau canvas, OmniCopilot, auth, datasets, the workbook viewer).
+
+Before changing anything:
+1. Inventory what exists and list each feature as WORKING, PARTIAL, SIMULATED, or PLANNED, with evidence from running it.
+2. Tell me what the build log claims that you could not verify.
+Then wait for my phase instructions. Mark an item WORKING only if you tested it. Never invent numbers, datasets, test results, or customers.
+```
+
+---
+
+## 1. STANDING RULES (apply to everything below)
+
+1. **Preserve first.** New features are additions behind their own navigation entry. Existing behaviour is the default.
+2. **Honest status labels.** Every feature in the UI is `working`, `partial`, `simulated`, or `planned`. Simulated data is always labelled "simulated". Nothing simulated may be presented as a measurement.
+3. **Judge and Memory gate.** Every calculation, chart, report, and AI-generated answer in this module passes through The Brain, or is labelled UNREVIEWED. Deterministic recomputation outranks model opinion.
+4. **Every formula has a source and a test.** Each calculation in Section 4 has a registry record (formula, symbols, units, assumptions, reference) and an automated test against a worked example. Verify formulas against standards or textbooks. Do not trust memory.
+5. **Units are first-class.** Every quantity carries a unit. Convert explicitly, and have the Judge reject calculations that mix incompatible units.
+6. **No control of real equipment.** This module is **advisory and analytical only**. It never writes to a PLC, robot, actuator, or control system. No such tool may exist in the code. See Section 6.
+7. **No fabricated evidence.** Market statistics, ROI ranges, customer names, and benchmarks are shown only with a named source and date, and the user's own inputs always take priority over generic benchmarks.
+8. **Tests must run.** Show real test output.
+
+---
+
+## 2. MARKET BASIS (what this module responds to)
+
+These points come from news and analysis in October 2026 and earlier in 2026. Treat them as context, and re-verify before quoting them in the product.
+
+- **Orchestration is the new focus.** Rockwell Automation introduced FactoryTalk Conductor on 21 October 2026, an AI-native orchestration platform that coordinates AI agents, skills, and workflows across the automation lifecycle. At launch it connects to Studio 5000 Logix Designer, Logix Echo, Emulate3D, and FactoryTalk Optix, accepts natural-language tasks, and lets customers use hosted AI services or their own models, including local open-weight models. Market launch is planned for Q1 2027. An analyst quoted in the announcement said the next phase of industrial AI will be defined by orchestration rather than individual copilots. Siemens announced a comparable agentic orchestration platform, Intelligence Center X, earlier in 2026.
+- **Humanoids are entering pilots, not mass deployment.** AGCO and Agility Robotics announced on 20 October 2026 a pilot of the Digit humanoid at AGCO's Hesston, Kansas plant, expected to start in 2027, beginning with sorting and stacking parts and placing totes into storage. AGCO has not disclosed the number of robots, duration, investment, or success targets. Gartner has warned that humanoids currently cost several times more than task-specific robots with lower throughput and uptime. McKinsey notes that existing robot safety standards (ISO 10218, ISO/TS 15066) were written for arms and cobots, not for freely moving humanoids, and that sustained uptime is the main barrier to scale.
+- **What has the strongest evidence: predictive maintenance and vision-based quality inspection.** Published benefit ranges vary a lot between sources (for example payback of 8 to 18 months in one analysis, and much higher ROI claims in others), most are from vendors or consultancies, and the common caveat is that results depend on clean, structured data. **Do not hard-code any ROI figure as a promise.** The product calculates ROI from the user's own inputs.
+- **The emerging interoperability stack:** OPC UA for secure data access from equipment, a Unified Namespace (UNS, usually over MQTT with Sparkplug B) for organizing and contextualizing data, MCP for letting AI agents use tools and data, and A2A for agent-to-agent coordination.
+
+**Product thesis:** OmniData becomes the **auditable analytics and review layer for industrial AI**. Others build orchestration and automation. OmniData's differentiator is that every number is traceable, recomputed, reviewed by the Judge, and remembered by Memory, and that engineers can use it with their own data and their own models.
+
+---
+
+## 3. MODULE: OMNIDATA INDUSTRIAL (new navigation entry, additive)
+
+Sub-areas:
+
+1. **Industrial Data Fabric:** assets, tags, time series, quality of sensor data.
+2. **Reliability and Maintenance Analytics.**
+3. **Quality and SPC.**
+4. **Production Flow and OEE.**
+5. **Robotics and Automation Calculators** (including pilot business case and ergonomics).
+6. **Risk and Safety Analysis** (FMEA, fault trees, reliability block diagrams).
+7. **AI Model Health** (drift, data contracts for sensor streams).
+8. **Agent Orchestrator** (multi-step engineering tasks with approvals).
+9. **Reports** (engineering report with calculation sheets and audit trail).
+
+### 3.1 Industrial Data Fabric
+
+- **Asset hierarchy** following the ISA-95 style levels (enterprise, site, area, line, cell, machine, component). Tree view with search, and each node carries metadata (make, model, commissioning date, units).
+- **Tag registry:** name, description, unit, data type, sampling rate, range, owner, asset link.
+- **Ingestion paths (real):** CSV and Excel historian exports (use the workbook viewer), JSON, Parquet; and a **server-side gateway** (Node) with optional connectors for MQTT (including Sparkplug B payloads) and OPC UA (using established libraries such as `mqtt` and `node-opcua`), read-only, with connection settings stored server-side. Browsers cannot reach plant networks directly, so say so in the UI.
+- **Simulated feed generator** for demos (clearly labelled SIMULATED, with its seed and parameters shown).
+- **Unified Namespace view:** topic tree (for example `enterprise/site/area/line/cell/machine/tag`) with live values, last update, and quality flag.
+- **Sensor data quality checks** (Judge-visible): stuck values, flat-lining, dropouts and gaps, spikes, out-of-range values, clock skew and duplicate timestamps, unit mismatches, and time-zone errors. Each produces PASS, WARNING, or FAIL and blocks downstream analysis on critical failures.
+- Time-series storage: DuckDB (WASM or server) for analysis, Supabase Postgres for metadata and results. Large series use downsampling (min/max-preserving) for charts, with a visible indicator that a chart is downsampled.
+
+### 3.2 Reliability and maintenance analytics
+
+Implement as registry methods (Section 4.1): Weibull analysis with censoring, Kaplan-Meier survival, MTBF/MTTR/availability, Pareto of downtime causes, failure-rate trends (Crow-AMSAA), maintenance cost analysis, **remaining useful life (RUL)** estimation with uncertainty, anomaly detection on sensor data, and vibration analysis (spectrum, envelope, bearing fault frequencies).
+
+### 3.3 Quality and SPC
+
+Control charts (X-bar and R, X-bar and S, I-MR, p, np, c, u, EWMA, CUSUM), run rules (Western Electric and Nelson), process capability (Cp, Cpk, Pp, Ppk) with confidence intervals, measurement system analysis (gauge R&R), normality checks before capability, Pareto, and root-cause tools (fishbone template, 5-whys template).
+
+### 3.4 Production flow and OEE
+
+OEE decomposition (waterfall), loss categories, takt time, line balancing, bottleneck identification, buffer sizing, and a **discrete-event simulation** of a production line with Monte Carlo runs (seeded, reproducible, confidence intervals on throughput).
+
+### 3.5 Robotics and automation calculators
+
+See Section 4.4. Includes kinematics, motor and gear sizing, trajectory time, cycle time, and a **robot or humanoid pilot business case** calculator that uses the user's inputs only.
+
+### 3.6 Risk and safety analysis
+
+FMEA table (with RPN and the newer Action Priority method), fault tree analysis with minimal cut sets, reliability block diagrams, and a HAZOP-style worksheet. AI may draft entries, but every entry is marked "AI-drafted, needs engineer review", and the Judge checks the arithmetic.
+
+### 3.7 AI model health
+
+Population stability index, Kolmogorov-Smirnov drift test, Page-Hinkley change detection, calibration checks, alert-fatigue metrics, and data contracts for sensor streams (reusing WF02).
+
+### 3.8 Agent Orchestrator
+
+See Section 5.
+
+---
+
+## 4. CALCULATION LIBRARY (registry records with formulas)
+
+Register each item (Section 16 style: formula, symbols, units, assumptions, reference, validation example, Judge guards). **Verify every formula and constant against the cited standard or textbook before marking it WORKING.**
+
+### 4.1 Reliability and maintenance
+
+- **Availability and repair:** MTBF = total operating time / number of failures. MTTR = total repair time / number of repairs. Inherent availability A_i = MTBF / (MTBF + MTTR).
+- **Weibull:** F(t) = 1 − exp(−(t/η)^β); reliability R(t) = exp(−(t/η)^β); hazard h(t) = (β/η)(t/η)^(β−1); mean life = η·Γ(1 + 1/β); B10 life = η·(−ln 0.9)^(1/β). Estimate β and η by maximum likelihood with right-censoring, with confidence bounds, and probability plot. Interpretation of β (below 1 early failures, near 1 random, above 1 wear-out) with a warning that interpretation needs engineering judgment.
+- **Kaplan-Meier** survival with censoring and Greenwood confidence intervals. **Crow-AMSAA** reliability growth for repairable systems.
+- **Series and parallel systems:** series R = Π R_i; parallel R = 1 − Π(1 − R_i); k-out-of-n via binomial sum.
+- **Fault tree:** AND gate P = Π p_i; OR gate P = 1 − Π(1 − p_i) (independent events); minimal cut sets; Birnbaum and Fussell-Vesely importance. State the independence assumption.
+- **Vibration and bearings:** RMS, peak, crest factor, kurtosis; FFT amplitude spectrum with windowing; envelope spectrum via Hilbert transform. Bearing fault frequencies for shaft speed f_r, number of rolling elements n, ball diameter d, pitch diameter D, contact angle φ: BPFO = (n/2)·f_r·(1 − (d/D)·cos φ); BPFI = (n/2)·f_r·(1 + (d/D)·cos φ); FTF = (f_r/2)·(1 − (d/D)·cos φ); BSF = (D/(2d))·f_r·(1 − ((d/D)·cos φ)²). Severity classification per the current vibration standard (ISO 20816 series), loaded from a verified table with a citation, never from memory.
+- **Remaining useful life:** degradation-model approaches (linear, exponential, Wiener process with first-passage-time prediction intervals) and a data-driven baseline. Report RUL with an uncertainty interval, and evaluate with the asymmetric scoring function used in the NASA turbofan benchmark, verified against its documentation. Late predictions must be penalized more than early ones, and the Judge checks that the scoring direction is correct.
+- **Anomaly detection:** robust z-score using the median and MAD, EWMA residuals, and PCA-based Hotelling T² and squared prediction error (SPE/Q). Report false-alarm rate on held-out normal data.
+- **Maintenance decision:** expected cost of alert thresholds = C_FN · FN + C_FP · FP, choose the threshold that minimizes expected cost on time-ordered validation data, and report lead time before failure.
+
+### 4.2 Quality and SPC
+
+- X-bar chart limits: X̿ ± A2·R̄ (constants from published tables, verified). I-MR: X̄ ± 2.66·MR̄. p, np, c, u chart limits from the binomial or Poisson models.
+- **EWMA:** z_t = λx_t + (1 − λ)z_(t−1), with control limits μ0 ± L·σ·√(λ/(2 − λ)·[1 − (1 − λ)^(2t)]).
+- **CUSUM:** S⁺_t = max(0, S⁺_(t−1) + x_t − (μ0 + k)); S⁻_t = max(0, S⁻_(t−1) − x_t + (μ0 − k)).
+- **Capability:** Cp = (USL − LSL) / 6σ; Cpk = min[(USL − μ)/3σ, (μ − LSL)/3σ]; Pp and Ppk use the overall standard deviation. Check normality and stability first, and flag when the process is not in control, since capability indices are then not meaningful.
+- **Gauge R&R** by the ANOVA method with %study variation, number of distinct categories.
+
+### 4.3 Production flow
+
+- **OEE** = A × P × Q, where A = run time / planned production time; P = (ideal cycle time × total count) / run time; Q = good count / total count. **TEEP** = OEE × (planned production time / calendar time). Follow ISO 22400 definitions where applicable, and document which loss categories are included.
+- **Takt time** = available production time / customer demand.
+- **Line balancing efficiency** = Σ task times / (number of stations × cycle time). Bottleneck = station with the longest effective cycle time.
+- **Little's Law:** L = λW. **Queueing:** M/M/c with the Erlang C formula, for utilization and waiting time, with a warning that real lines rarely meet its assumptions. For serial lines with buffers, use simulation, not formulas.
+
+### 4.4 Robotics and automation (engineering calculators)
+
+All of these are engineering aids. The Judge checks units and ranges.
+
+- **Forward kinematics** with Denavit-Hartenberg parameters: T = A_1·A_2·…·A_n, where each A_i is the standard DH transform. **Jacobian** by finite differences or analytic. **Inverse kinematics** by damped least squares: Δq = Jᵀ(JJᵀ + λ²I)⁻¹·e, with singularity warnings and joint-limit checks. **Workspace** visualization.
+- **Dynamics:** τ = M(q)·q̈ + C(q, q̇)·q̇ + g(q) + friction, for planar and serial arms (use a tested algorithm such as recursive Newton-Euler), with payload effects.
+- **Trajectory timing:** trapezoidal velocity profile for a move of distance d with limits v_max and a_max. If d ≥ v_max²/a_max, total time = d/v_max + v_max/a_max; otherwise total time = 2·√(d/a_max). S-curve (jerk-limited) option. **Cycle time** = Σ move times + dwell times + pick/place times, with sensitivity analysis.
+- **Motor and gearbox sizing:** RMS torque τ_rms = √(Σ τ_i²·t_i / Σ t_i), peak torque and speed checks, reflected inertia J_load/N², inertia ratio, thermal margin. Output a pass/fail table against catalog values entered by the user.
+- **Gripper force:** required clamping force from payload, acceleration, friction coefficient, and a safety factor, with the formula and assumptions shown.
+- **Ergonomics (task allocation between human and robot):** revised NIOSH lifting equation, RWL = 23 kg × HM × VM × DM × AM × FM × CM, with HM = 25/H, VM = 1 − 0.003·|V − 75|, DM = 0.82 + 4.5/D, AM = 1 − 0.0032·A (centimeters and degrees), frequency and coupling multipliers from the published tables; Lifting Index LI = load / RWL. RULA and REBA scoring implemented from the published tables, verified.
+- **Separation distance for safeguarding** in the form S = K·T + C (ISO 13855 style) with K, T, and C inputs from the standard, shown with the reminder that the user must verify against the current standard. **Force and pressure limits for collaborative operation (ISO/TS 15066)** must come from a verified table with a citation. If the table cannot be verified, mark the feature `planned`.
+- **Pilot business case (robot, humanoid, or AMR):** uses only the user's inputs. Effective productive hours = scheduled hours × availability × (1 − share of time lost to human interventions). Cost per productive hour = (capital cost / (service life × scheduled hours per year) + maintenance + energy + supervision + integration) / effective productive fraction. Report mean time between interventions, payback, NPV, IRR, break-even uptime, a **tornado sensitivity chart**, and a **Monte Carlo** run with user-defined distributions (seeded, with confidence intervals). Compare with the current manual cost, and include avoided ergonomic risk only if the user supplies a cost. **Show no benchmark ROI as a prediction.**
+
+### 4.5 Risk analysis
+
+- **FMEA:** RPN = S × O × D, and the newer Action Priority (AP) method (AIAG and VDA) as an alternative. Warn that RPN is a known weak ranking method (different combinations give identical RPN). **IEC 60812** is the reference.
+- **Reliability block diagrams** and **fault trees** (Section 4.1), with a Monte Carlo reliability option and importance measures.
+- **Bayesian diagnosis network** for simple fault diagnosis (user-defined structure and probabilities), showing posterior probabilities and the assumptions.
+
+### 4.6 AI model health
+
+- **PSI** = Σ (p_i − q_i)·ln(p_i / q_i) over bins, with thresholds shown as conventions, not laws. **KS test** for drift on continuous features. **Page-Hinkley** change detection. **Calibration** (reliability diagram, Brier score). **Alert fatigue:** alerts per week, precision, and time to acknowledge.
+- **Leakage rules for industrial ML:** split by machine (group k-fold) and by time, never randomly across time series of the same machine, since random splits leak. The Judge checks this automatically (extends MEM-001).
+
+---
+
+## 5. AGENT ORCHESTRATOR (powerful, but safe)
+
+**Idea:** engineers describe a task in plain language ("find which machines on Line 3 are trending toward bearing failure and estimate the cost of waiting a month"). The orchestrator builds a plan, shows it, runs the approved steps, and returns an audited result. This extends WF10 and OmniCopilot; it does not replace them.
+
+1. **Agents (roles, not magic):** Data Fabric agent, Reliability agent, Quality agent, Robotics-cell agent, Risk agent, Report agent, and the **Judge** (independent). Each agent has a role description, allowed tools, and a budget (steps, time, tokens).
+2. **Plan, preview, approve, run.** The plan lists every step, the tool each step uses, and its inputs. The user approves before execution. Steps that only read and compute can be pre-approved by policy. Anything that exports, publishes, or sends data requires explicit approval.
+3. **Tool permission matrix:** tools are read-only or compute-only by default. **There are no actuation or write-to-equipment tools.** Each tool call is logged with inputs, outputs, and duration.
+4. **Judge gate on every agent output**, with up to 3 correction rounds (Section 14 of the master addendum), and Memory lessons applied before each run.
+5. **Bring your own model:** a provider interface with Gemini as the default and a configurable OpenAI-compatible endpoint (including a locally hosted open-weight model on the user's own server), so plants that cannot send data to the cloud can still use the module. Keys and endpoints are stored server-side only. Show clearly which model produced which output.
+6. **Open interfaces:** expose a **read-only MCP server** from OmniData (list datasets, run a registered analysis, fetch a report) with authentication, rate limits, and audit logs, so other agents and tools can use OmniData's reviewed results. Include an A2A-style task handoff format as `planned` until tested. Never expose write access.
+7. **Prompt-injection defence:** tag names, asset descriptions, uploaded documents, and sensor metadata are untrusted data. They must never be treated as instructions, and the Judge flags any output that follows instructions found inside data.
+8. **Honest scope:** call it "workflow orchestration with audit", not "autonomous plant control".
+
+---
+
+## 6. SAFETY, SECURITY, AND CLAIMS
+
+- This software is **not a safety system** and does not replace a certified safety assessment (for example under ISO 13849, ISO 10218, ISO/TS 15066, ISO 13855, or IEC 62443). Every calculator that touches safety shows this notice, the standard it follows, its version, and "verify with a qualified engineer".
+- **No writes to equipment**, no command channel, no setpoint changes.
+- **OT security basics:** gateway connections are read-only and use least privilege; credentials are stored server-side; no plant data goes to external AI services without a visible disclosure and consent; support an **air-gapped or local-only mode** that disables cloud AI. Refer to IEC 62443 concepts (zones and conduits) in the documentation without claiming compliance.
+- **No performance claims** ("increases efficiency by X%") in the UI or reports unless computed from the user's own data in that analysis.
+- Humanoid and robot features are labelled as **business-case and engineering analysis tools**. Do not imply the app controls or certifies any robot.
+
+---
+
+## 7. DATASETS FOR TESTING (real, public, verify licences)
+
+Add as optional imports with source, licence, and citation shown. Do not fabricate or silently regenerate them. If a download is not possible in the environment, provide the import instructions and use a clearly labelled synthetic substitute.
+
+- NASA C-MAPSS turbofan engine degradation (run-to-failure, for RUL).
+- NASA/IMS bearing run-to-failure data and the Case Western Reserve University bearing fault dataset (for vibration analysis).
+- UCI AI4I 2020 predictive maintenance dataset (synthetic but standard, for classification with class imbalance).
+- UCI SECOM semiconductor manufacturing dataset (many sensors, few failures, for SPC and feature selection).
+- The user's own CBN-style workbooks continue to work through the workbook viewer.
+
+Also keep the existing five benchmark datasets and the restored 1,000,000-record sensor grid, and label which datasets are real and which are generated.
+
+---
+
+## 8. USER INTERFACE
+
+- A new **Industrial** entry in the navigation, with the sub-areas in Section 3. Existing layout and shortcuts remain. Hotkeys stay disabled while typing.
+- **Asset tree** on the left, analysis canvas in the center, **Judge and Memory panel** on the right.
+- Reuse the Excel-grade grid for tag tables, FMEA tables, and results, and the chart canvas for control charts, Weibull plots, spectra, waterfalls, tornado charts, and trajectories.
+- **Novice and Pro modes** as elsewhere: novices get plain-language explanations ("this line loses most time to micro-stops") and guarded defaults, and pros see formulas, parameters, and diagnostics.
+- Every calculator shows its formula, inputs with units, a worked-through result, assumptions, and a warning area. Text is large enough to read (minimum 14 px), and everything scrolls freely.
+- Printable **engineering report** with a calculation sheet per analysis, source data fingerprints, parameter values, software version, Judge verdict, and the list of Memory lessons applied.
+
+---
+
+## 9. PHASES AND ACCEPTANCE TESTS (do one at a time)
+
+**Phase A: Stabilize and verify (no new features).**
+1. Verify the Excel workbook viewer on the real 46-sheet CBN workbook against the 12 acceptance tests (46 tabs, 60 merged cells on A1.1, 176 `-` and 164 `n.a.` codes kept separate, Menu catalog, original file unchanged).
+2. Confirm that the restored datasets and selector work, and that hotkeys never fire inside inputs.
+3. Remove or clearly relabel unverifiable claims (for example fixed confidence percentages on the certification seal). Move Memory to Supabase with row-level security and an append-only log, with local storage only as a cache.
+4. Add real automated tests and show the output.
+
+**Phase B: Industrial data fabric and sensor data quality.** Asset tree, tag registry, CSV/Excel/Parquet import, simulated feed (labelled), data-quality checks, UNS view, DuckDB analysis. *Tests:* planted stuck sensor, gap, spike, and unit mismatch are caught; downsampled charts are labelled.
+
+**Phase C: Reliability, SPC, and OEE.** Weibull, Kaplan-Meier, MTBF/MTTR, control charts, capability, OEE. *Tests:* each method matches a textbook or reference-library worked example within tolerance; a non-stable process blocks capability reporting; OEE matches a hand-computed example.
+
+**Phase D: Predictive models.** Anomaly detection, RUL, classification on AI4I-style data with group and time splits. *Tests:* a deliberately random split on time series is flagged as leakage; cost-based threshold beats the default 0.5 on expected cost; RUL scoring penalizes late predictions more than early.
+
+**Phase E: Robotics, ergonomics, and pilot business case.** Kinematics, trajectory timing, motor sizing, NIOSH, business case with Monte Carlo and tornado. *Tests:* kinematics match a known two-link example; trapezoidal timing matches a hand calculation in both regimes; NIOSH matches a published worked example; Monte Carlo is reproducible with a fixed seed; no benchmark is shown as a prediction.
+
+**Phase F: Risk analysis.** FMEA, fault trees, reliability block diagrams. *Tests:* cut sets and top-event probabilities match a worked example; the Judge flags a duplicate-RPN ranking problem.
+
+**Phase G: Agent orchestrator.** Plan, preview, approve, run, Judge gate, bring-your-own-model, read-only MCP server. *Tests:* a prompt injection hidden in a tag description is ignored and flagged; no tool can write to equipment; an unapproved export is blocked; a task that exceeds its budget stops cleanly.
+
+**Phase H: Reports and polish.** Engineering report export, accessibility, performance measurements.
+
+At the end of each phase, report: what was preserved, what was added, what changed, and a table of WORKING / PARTIAL / SIMULATED / PLANNED with test evidence.
+
+---
+
+## 10. CLEAN UP THE FRONTIER SCIENCE SECTION (WF11)
+
+Era VI and Era VII content (Dyson swarms, interstellar biosurveillance, spacetime manifold computing, noosphere and collective-consciousness integration, and Integrated Information Theory applied to a collective) is speculative. Keep it, since it is part of the user's vision, but:
+- Label the whole 2080+ section "speculative scenarios and illustrative models, not established science or engineering".
+- Apply a visible badge to every era with an evidence level: `established`, `emerging research`, or `speculative`.
+- Do not show invented numbers as results. Illustrative calculations must say "example with assumed inputs".
+- Keep the Lean 4 export labelled as an illustrative template unless a proof actually compiles in Lean, in which case show the compile result.
+
+---
+
+## 11. DEPLOYMENT PACKAGE (GitHub, Supabase, Vercel)
+
+Prepare the project so it can be run and launched by someone other than you.
+
+1. **Repository hygiene:** `.gitignore` (node_modules, build output, `.env*`), `.env.example` listing every variable with a description, a clear `README.md` (install, run, test, deploy, troubleshooting), `LICENSE` placeholder (I will choose), and a `CHANGELOG`.
+2. **Environment variables:** public browser variables only `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`. Server-only secrets (`GEMINI_API_KEY`, any other model key, gateway credentials) never appear in client code, logs, or the repository. Search the codebase and report any hard-coded secret.
+3. **Supabase:** a `supabase/migrations/` folder with SQL for all tables (datasets, pipeline runs, outputs, corrections, lessons, events, assets, tags, results), **row-level security policies on every table** with tests using two different users, seed script for demo data, and instructions to run the SQL in the Supabase SQL editor. Disable or clearly separate demo personas in production. Configure Auth (email, and Google/GitHub providers if wanted) and the redirect URLs for local and production domains.
+4. **Hosting decision (explain trade-offs, then follow my choice):** the app currently has an Express server (`server.ts`) for the AI proxy. A static Vite build alone cannot run it. Options: (a) deploy the front end on Vercel and convert `/api/ai/*` to Vercel serverless functions; (b) deploy the whole app as a container on a platform that runs Node servers (for example Google Cloud Run); (c) front end on Vercel and the API on a separate Node host. Recommend one with reasons, and prepare the configuration files for it (`vercel.json` or `Dockerfile`).
+5. **CI:** a GitHub Actions workflow that installs, lints, builds, and runs tests on every push, and fails the build on errors.
+6. **Pre-launch checklist** (each item with evidence): working sign-up and sign-in, RLS tested, no secrets in the client bundle, rate limiting on AI routes, privacy and terms placeholders (marked as needing legal review), feature-status table matching the UI, error pages, mobile layout, accessibility check, and a measured performance report.
+
+Step-by-step instructions for me (a non-expert) must be included in the README: create the GitHub repository, push the code, create the Supabase project and run the migrations, connect the repository to the hosting platform, add the environment variables, set the Supabase redirect URL to the live domain, and test sign-up on the live site.
+
+---
+
+## 12. DEFINITION OF DONE
+
+The module is done only when: every feature has an honest status label; all acceptance tests in Section 9 have real output; the Judge and Memory run on every calculation; no code path can write to equipment; no secret is in the client; the app builds in CI from a clean checkout; and a new person can follow the README to run and deploy it.
