@@ -37,6 +37,7 @@ export const WF02Quality: React.FC<WF02Props> = ({
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showDbtModal, setShowDbtModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
 
   // New assertion state
   const [newType, setNewType] = useState<DataQualityAssertion['type']>('expect_column_values_to_not_be_null');
@@ -412,11 +413,16 @@ export const WF02Quality: React.FC<WF02Props> = ({
               <button
                 onClick={() => {
                   navigator.clipboard.writeText(dbtYaml);
-                  alert('Copied dbt schema.yml to clipboard');
+                  setIsCopied(true);
+                  setTimeout(() => setIsCopied(false), 2500);
                 }}
-                className="px-3.5 py-1.5 text-xs font-semibold bg-slate-800 hover:bg-slate-750 text-white border border-slate-700 rounded-lg"
+                className={`px-3.5 py-1.5 text-xs font-semibold border rounded-lg transition ${
+                  isCopied
+                    ? 'bg-emerald-950 text-emerald-300 border-emerald-700'
+                    : 'bg-slate-800 hover:bg-slate-750 text-white border border-slate-700'
+                }`}
               >
-                Copy YAML
+                {isCopied ? 'Copied to Clipboard!' : 'Copy YAML'}
               </button>
             </div>
           </div>

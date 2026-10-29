@@ -39,6 +39,7 @@ export const WF06SQL: React.FC<WF06Props> = ({
   // Destructive modal state
   const [showDestructiveModal, setShowDestructiveModal] = useState(false);
   const [pendingDestructiveCommand, setPendingDestructiveCommand] = useState<string>('');
+  const [savedNotice, setSavedNotice] = useState(false);
 
   const tables: Record<string, Record<string, any>[]> = {
     active_data: activeDataset.data,
@@ -110,7 +111,8 @@ export const WF06SQL: React.FC<WF06Props> = ({
       columns: result.columns,
     };
     onSaveAsDataset(newDs);
-    alert('SQL query result saved as a new versioned dataset table!');
+    setSavedNotice(true);
+    setTimeout(() => setSavedNotice(false), 3000);
   };
 
   const handleExportCSV = () => {
@@ -263,10 +265,14 @@ export const WF06SQL: React.FC<WF06Props> = ({
                   <div className="flex items-center gap-2">
                     <button
                       onClick={handleSaveAsNewDataset}
-                      className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium bg-slate-800 hover:bg-slate-750 text-slate-200 border border-slate-700 rounded-lg transition"
+                      className={`flex items-center gap-1 px-2.5 py-1 text-xs font-medium border rounded-lg transition ${
+                        savedNotice
+                          ? 'bg-emerald-950 text-emerald-300 border-emerald-700'
+                          : 'bg-slate-800 hover:bg-slate-750 text-slate-200 border-slate-700'
+                      }`}
                     >
-                      <PlusCircle className="w-3.5 h-3.5 text-indigo-400" />
-                      <span>Save As Table</span>
+                      <PlusCircle className={`w-3.5 h-3.5 ${savedNotice ? 'text-emerald-400' : 'text-indigo-400'}`} />
+                      <span>{savedNotice ? 'Table Saved!' : 'Save As Table'}</span>
                     </button>
                     <button
                       onClick={handleExportCSV}

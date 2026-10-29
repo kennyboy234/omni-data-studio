@@ -183,6 +183,7 @@ export const JudgeAndMemoryModal: React.FC<JudgeModalProps> = ({
   });
   const [symbolicVarNameInput, setSymbolicVarNameInput] = useState<string>('');
   const [symbolicVarValInput, setSymbolicVarValInput] = useState<boolean>(true);
+  const [promotedNotice, setPromotedNotice] = useState<string | null>(null);
 
   const [modelParamValues, setModelParamValues] = useState<Record<string, Record<string, number>>>(() => {
     const initial: Record<string, Record<string, number>> = {};
@@ -1106,7 +1107,8 @@ Provide:
               });
 
               setLessons((prev) => [lesson, ...prev]);
-              alert(`Verified rule successfully promoted to The Brain's Memory Bank as a permanent law!`);
+              setPromotedNotice('Verified rule successfully promoted to The Brain Memory Bank!');
+              setTimeout(() => setPromotedNotice(null), 3500);
             };
 
             return (
@@ -1484,6 +1486,12 @@ Provide:
                       <Brain className="w-4 h-4" />
                       <span>Promote to Brain Memory Bank as Verified Law / Axiom</span>
                     </button>
+
+                    {promotedNotice && (
+                      <div className="p-2.5 rounded-lg bg-emerald-950/80 border border-emerald-700 text-xs text-emerald-200 font-medium text-center">
+                        {promotedNotice}
+                      </div>
+                    )}
                   </div>
 
                   {/* Right Column: Interactive Computational Logic Path & Derivation Visualizer (7 cols) */}
