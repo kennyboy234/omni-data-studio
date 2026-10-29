@@ -5,11 +5,11 @@ import {
   BarChart3,
   TrendingUp,
   PieChart,
-  ArrowRight,
   Activity,
-  Layers,
+  ArrowRight,
 } from 'lucide-react';
 import { Dataset } from '../../types';
+import { BatteryTwin3DPanel } from '../../03-fleet/BatteryTwin3DPanel';
 
 interface WF08Props {
   dataset: Dataset;
@@ -17,6 +17,8 @@ interface WF08Props {
 }
 
 export const WF08Dashboard: React.FC<WF08Props> = ({ dataset, onGoToExport }) => {
+  const [activeView, setActiveView] = useState<'battery_twin' | 'analytics_canvas'>('battery_twin');
+
   const numericCols = dataset.profile.columns
     .filter((c) => c.type === 'integer' || c.type === 'float')
     .map((c) => c.name);
@@ -104,39 +106,76 @@ export const WF08Dashboard: React.FC<WF08Props> = ({ dataset, onGoToExport }) =>
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-slate-900 p-5 rounded-xl border border-slate-800">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-indigo-950 text-indigo-400 border border-indigo-800">
-              WF08
-            </span>
-            <h2 className="text-lg font-bold text-white tracking-tight">
-              Interactive Analytics Canvas & Visualization Dashboard
-            </h2>
-          </div>
-          <p className="text-xs text-slate-400">
-            Multi-dimensional slicing, dynamic KPI aggregates, bivariate scatter correlation, and group breakdowns.
-          </p>
+      {/* Studio 3 Fleet Mesh / WF08 Mode Switcher */}
+      <div className="flex items-center justify-between gap-4 bg-slate-900/90 border border-slate-800 p-2.5 rounded-2xl flex-wrap">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setActiveView('battery_twin')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
+              activeView === 'battery_twin'
+                ? 'bg-gradient-to-r from-cyan-600 to-indigo-600 text-white shadow-md shadow-cyan-950/40'
+                : 'text-slate-400 hover:text-white hover:bg-slate-850'
+            }`}
+          >
+            <Activity className="w-4 h-4 text-cyan-300" />
+            <span>WF08 3D Battery Twin (Hardware Explode View &amp; Thermals)</span>
+          </button>
+
+          <button
+            onClick={() => setActiveView('analytics_canvas')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
+              activeView === 'analytics_canvas'
+                ? 'bg-slate-800 text-indigo-300 border border-indigo-500/60 shadow-sm'
+                : 'text-slate-400 hover:text-white hover:bg-slate-850'
+            }`}
+          >
+            <BarChart3 className="w-4 h-4 text-indigo-400" />
+            <span>2D Analytics Charts &amp; Scatter Correlation</span>
+          </button>
         </div>
 
-        <button
-          onClick={onGoToExport}
-          className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg shadow-sm shadow-indigo-600/30 transition self-start lg:self-auto"
-        >
-          <span>Proceed to WF09 Executive Report</span>
-          <ArrowRight className="w-3.5 h-3.5" />
-        </button>
+        <span className="text-xs font-mono text-cyan-400 px-3 py-1 rounded-lg bg-slate-950 border border-slate-800">
+          STUDIO 3 • FLEET MESH
+        </span>
       </div>
 
-      {/* Global Slicing & Filter Bar */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-2 text-xs">
-          <Filter className="w-4 h-4 text-cyan-400" />
-          <span className="font-semibold text-white">Slice by {primaryCatCol}:</span>
-          <div className="flex items-center gap-1.5 flex-wrap">
+      {activeView === 'battery_twin' ? (
+        <BatteryTwin3DPanel />
+      ) : (
+        <>
+          {/* Header */}
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-slate-900 p-5 rounded-xl border border-slate-800">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-indigo-950 text-indigo-400 border border-indigo-800">
+                  WF08
+                </span>
+                <h2 className="text-lg font-bold text-white tracking-tight">
+                  Interactive Analytics Canvas &amp; Visualization Dashboard
+                </h2>
+              </div>
+              <p className="text-xs text-slate-400">
+                Multi-dimensional slicing, dynamic KPI aggregates, bivariate scatter correlation, and group breakdowns.
+              </p>
+            </div>
+
             <button
-              onClick={() => setSelectedCategoryFilter('ALL')}
+              onClick={onGoToExport}
+              className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg shadow-sm shadow-indigo-600/30 transition self-start lg:self-auto"
+            >
+              <span>Proceed to WF09 Executive Report</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          {/* Global Slicing & Filter Bar */}
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex items-center gap-2 text-xs">
+              <Filter className="w-4 h-4 text-cyan-400" />
+              <span className="font-semibold text-white">Slice by {primaryCatCol}:</span>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <button
+                  onClick={() => setSelectedCategoryFilter('ALL')}
               className={`px-2.5 py-1 rounded text-xs font-medium transition ${
                 selectedCategoryFilter === 'ALL'
                   ? 'bg-indigo-600 text-white font-bold'
@@ -307,6 +346,8 @@ export const WF08Dashboard: React.FC<WF08Props> = ({ dataset, onGoToExport }) =>
           </div>
         </div>
       </div>
+        </>
+      )}
     </div>
   );
 };

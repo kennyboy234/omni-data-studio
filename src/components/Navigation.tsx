@@ -14,9 +14,11 @@ import {
   Code2,
   Orbit,
   Bot,
+  Zap,
 } from 'lucide-react';
 
 export type WorkflowId =
+  | 'S3_FLEET'
   | 'WF01'
   | 'WF02'
   | 'WF03'
@@ -42,6 +44,7 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
+  { id: 'S3_FLEET', code: 'S3', label: 'Fleet Mesh (The WOW)', icon: Zap, keyShortcut: 'M', isFlagship: true },
   { id: 'WF01', code: 'WF01', label: 'Ingestion & Profile', icon: FileSpreadsheet, keyShortcut: '1' },
   { id: 'WF02', code: 'WF02', label: 'Quality & Contracts', icon: CheckCircle2, keyShortcut: '2' },
   { id: 'WF03', code: 'WF03', label: 'Cleaning & Audit', icon: Filter, keyShortcut: '3' },
@@ -106,7 +109,7 @@ export const Navigation: React.FC<NavigationProps> = ({
 
               {item.isFlagship && (
                 <span className="ml-0.5 px-1.5 py-0.5 text-[10px] font-mono font-bold rounded bg-cyan-950 text-cyan-300 border border-cyan-700">
-                  2046-2246
+                  {item.id === 'S3_FLEET' ? 'THE WOW' : '2046-2246'}
                 </span>
               )}
 

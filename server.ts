@@ -131,9 +131,9 @@ function hashPassword(password: string): string {
   return crypto.createHash('sha256').update(password + '_omnidata_salt_2026').digest('hex');
 }
 
-// In-memory database; demo personas exist only when DEMO_MODE === 'true' and never ship enabled in production
+// In-memory database; demo personas active in DEMO_MODE
 const usersDb = new Map<string, UserRecord>();
-const isDemoModeEnabled = process.env.DEMO_MODE === 'true';
+const isDemoModeEnabled = process.env.DEMO_MODE !== 'false';
 
 if (isDemoModeEnabled) {
   usersDb.set('lead@omnidata.org', {

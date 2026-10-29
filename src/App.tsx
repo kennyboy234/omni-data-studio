@@ -23,6 +23,8 @@ import { SpssEviewsStudio } from './components/SpssEviewsStudio';
 import { ExcelTableauStudio } from './components/ExcelTableauStudio';
 import { FeatureStatusModal } from './components/FeatureStatusModal';
 import { ChaosStressTestModal } from './components/ChaosStressTestModal';
+import { FleetMeshProvider } from './03-fleet/FleetMeshContext';
+import { Studio3FleetHub } from './03-fleet/Studio3FleetHub';
 import {
   CleaningStep,
   DataQualityAssertion,
@@ -38,6 +40,7 @@ import { getSampleDatasets } from './utils/datasets';
 import { trainTestSplit } from './utils/featureEngineering';
 
 const initialPipelineNodes: PipelineNode[] = [
+  { id: 'node_s3_fleet', code: 'S3', title: 'Studio 3: Fleet Mesh & 3D Battery Twin', status: 'completed', durationMs: 28, logMessages: ['Real-time 270Hz hard PLC bridge calibrated. FlightRadar telemetry trails streaming. 3D battery exploded digital twin active.'] },
   { id: 'node_wf01', code: 'WF01', title: 'Data Ingestion & Profiling', status: 'completed', durationMs: 42, logMessages: ['Dataset hash validated. In-memory profile computed.'] },
   { id: 'node_wf02', code: 'WF02', title: 'Data Quality Contracts', status: 'completed', durationMs: 65, logMessages: ['Evaluated 8 assertions. Zero fatal contract violations.'] },
   { id: 'node_wf03', code: 'WF03', title: 'Cleaning & Transformation Audit', status: 'completed', durationMs: 110, logMessages: ['Lineage version snapshot created. Source left immutable.'] },
@@ -56,7 +59,7 @@ const initialPipelineNodes: PipelineNode[] = [
 export default function App() {
   const [datasets, setDatasets] = useState<Dataset[]>(() => getSampleDatasets());
   const [activeDatasetId, setActiveDatasetId] = useState<string>(() => datasets[0]?.id || 'ds_saas_churn');
-  const [activeTab, setActiveTab] = useState<WorkflowId>('WF01');
+  const [activeTab, setActiveTab] = useState<WorkflowId>('S3_FLEET');
   const [isCopilotOpen, setIsCopilotOpen] = useState<boolean>(false);
   const [isNoviceMode, setIsNoviceMode] = useState<boolean>(true);
   const [isAuthOpen, setIsAuthOpen] = useState<boolean>(false);
@@ -175,6 +178,8 @@ export default function App() {
 
       if (!isTyping && !e.metaKey && !e.ctrlKey && !e.altKey) {
         const keyMap: Record<string, WorkflowId> = {
+          m: 'S3_FLEET',
+          M: 'S3_FLEET',
           '1': 'WF01',
           '2': 'WF02',
           '3': 'WF03',
@@ -191,6 +196,8 @@ export default function App() {
           E: 'WF12',
           h: 'WF13',
           H: 'WF13',
+          i: 'WF14',
+          I: 'WF14',
         };
 
         if (keyMap[e.key]) {
@@ -266,48 +273,51 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans flex flex-col">
-      {/* Top Header */}
-      <Header
-        datasets={datasets}
-        activeDatasetId={activeDatasetId}
-        onSelectDataset={setActiveDatasetId}
-        onRunFullPipeline={handleRunFullPipeline}
-        isPipelineRunning={isPipelineRunning}
-        onOpenReport={() => setActiveTab('WF09')}
-        onOpenFutureScience={() => setActiveTab('WF11')}
-        onOpenCopilot={() => setIsCopilotOpen(true)}
-        onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
-        onOpenEditor={() => setActiveTab('WF12')}
-        onOpenBrain={() => {
-          setBrainInitialTab('reviews');
-          setIsBrainOpen(true);
-        }}
-        onOpenAiReasoning={() => {
-          setBrainInitialTab('ai_reasoning');
-          setIsBrainOpen(true);
-        }}
-        onOpenFleetConnectivity={() => setActiveTab('WF14')}
-        onOpenSpssEviews={() => setIsSpssOpen(true)}
-        onOpenExcelTableau={() => setIsExcelTableauOpen(true)}
-        currentUser={currentUser}
-        onOpenAuth={() => setIsAuthOpen(true)}
-        aiActive={true}
-        onOpenFeatureStatus={() => setIsFeatureStatusOpen(true)}
-        onOpenChaosLab={() => setIsChaosLabOpen(true)}
-      />
+    <FleetMeshProvider onNavigateWorkflow={(wf) => setActiveTab(wf)}>
+      <div className="min-h-screen bg-slate-950 text-slate-100 font-sans flex flex-col">
+        {/* Top Header */}
+        <Header
+          datasets={datasets}
+          activeDatasetId={activeDatasetId}
+          onSelectDataset={setActiveDatasetId}
+          onRunFullPipeline={handleRunFullPipeline}
+          isPipelineRunning={isPipelineRunning}
+          onOpenReport={() => setActiveTab('WF09')}
+          onOpenFutureScience={() => setActiveTab('WF11')}
+          onOpenCopilot={() => setIsCopilotOpen(true)}
+          onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
+          onOpenEditor={() => setActiveTab('WF12')}
+          onOpenBrain={() => {
+            setBrainInitialTab('reviews');
+            setIsBrainOpen(true);
+          }}
+          onOpenAiReasoning={() => {
+            setBrainInitialTab('ai_reasoning');
+            setIsBrainOpen(true);
+          }}
+          onOpenFleetConnectivity={() => setActiveTab('S3_FLEET')}
+          onOpenSpssEviews={() => setIsSpssOpen(true)}
+          onOpenExcelTableau={() => setIsExcelTableauOpen(true)}
+          currentUser={currentUser}
+          onOpenAuth={() => setIsAuthOpen(true)}
+          aiActive={true}
+          onOpenFeatureStatus={() => setIsFeatureStatusOpen(true)}
+          onOpenChaosLab={() => setIsChaosLabOpen(true)}
+        />
 
-      {/* 10-Workflow Navigation Bar */}
-      <Navigation
-        activeTab={activeTab}
-        onSelectTab={setActiveTab}
-        cleaningStepCount={cleaningSteps.length}
-        qualityFailCount={validationReport?.failedCount || 0}
-      />
+        {/* 10-Workflow Navigation Bar */}
+        <Navigation
+          activeTab={activeTab}
+          onSelectTab={setActiveTab}
+          cleaningStepCount={cleaningSteps.length}
+          qualityFailCount={validationReport?.failedCount || 0}
+        />
 
-      {/* Main Workflow Viewport */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
-        {activeTab === 'WF01' && (
+        {/* Main Workflow Viewport */}
+        <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+          {activeTab === 'S3_FLEET' && <Studio3FleetHub />}
+
+          {activeTab === 'WF01' && (
           <WF01Ingestion
             dataset={activeDataset}
             allDatasets={datasets}
@@ -550,5 +560,6 @@ export default function App() {
         onClose={() => setIsChaosLabOpen(false)}
       />
     </div>
+    </FleetMeshProvider>
   );
 }

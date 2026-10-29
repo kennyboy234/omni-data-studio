@@ -20,9 +20,11 @@ import {
   Search,
   Eye,
   Github,
+  Zap,
 } from 'lucide-react';
 import { Dataset, ModelArtifact, QualityValidationReport } from '../../types';
 import { generateReproduciblePythonScript } from '../../utils/pythonExporter';
+import { PlcBridgePanel } from '../../03-fleet/PlcBridgePanel';
 
 interface WF12Props {
   dataset: Dataset;
@@ -44,6 +46,7 @@ export const WF12Editor: React.FC<WF12Props> = ({
   modelArtifact,
   validationReport,
 }) => {
+  const [activeView, setActiveView] = useState<'plc_bridge' | 'code_editor'>('plc_bridge');
   // Generate initial live file contents based on active studio state
   const pythonScript = generateReproduciblePythonScript(dataset, [], modelArtifact || undefined);
 
@@ -366,45 +369,82 @@ git push -u origin main`;
 
   return (
     <div className="space-y-6">
-      {/* Title Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-slate-900 p-6 rounded-2xl border border-slate-800">
-        <div>
-          <div className="flex items-center gap-2 mb-1.5">
-            <span className="px-2.5 py-0.5 rounded text-xs font-mono font-bold bg-cyan-950 text-cyan-300 border border-cyan-800">
-              WF12
-            </span>
-            <h2 className="text-xl font-bold text-white tracking-tight">
-              In-Browser Code Editor, Big File Workbench & GitHub Hub
-            </h2>
-          </div>
-          <p className="text-sm text-slate-300">
-            Edit Python pipelines, Supabase PostgreSQL schemas, and dbt contracts live in the browser. Push directly to GitHub or download project files.
-          </p>
-        </div>
-
-        {/* Global Action Buttons */}
-        <div className="flex items-center gap-3 flex-wrap">
+      {/* Studio 3 Fleet Mesh / WF12 View Mode Switcher */}
+      <div className="flex items-center justify-between gap-4 bg-slate-900/90 border border-slate-800 p-2.5 rounded-2xl flex-wrap">
+        <div className="flex items-center gap-2">
           <button
-            onClick={handleDownloadFullProjectBundle}
-            className="flex items-center gap-2 px-4 py-2.5 text-xs font-semibold bg-slate-800 hover:bg-slate-750 text-slate-100 border border-slate-700 rounded-xl transition cursor-pointer"
-            title="Download all editable code files as a single bundle"
+            onClick={() => setActiveView('plc_bridge')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
+              activeView === 'plc_bridge'
+                ? 'bg-gradient-to-r from-cyan-600 to-indigo-600 text-white shadow-md shadow-cyan-950/40'
+                : 'text-slate-400 hover:text-white hover:bg-slate-850'
+            }`}
           >
-            <Download className="w-4 h-4 text-cyan-400" />
-            <span>Download Project Bundle</span>
+            <Zap className="w-4 h-4 text-cyan-300" />
+            <span>WF12 PLC Bridge (270Hz Display &amp; SIMULATOR/REAL)</span>
           </button>
 
           <button
-            onClick={handleSaveFile}
-            className="flex items-center gap-2 px-4 py-2.5 text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl shadow-md shadow-indigo-600/30 transition cursor-pointer"
+            onClick={() => setActiveView('code_editor')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
+              activeView === 'code_editor'
+                ? 'bg-slate-800 text-indigo-300 border border-indigo-500/60 shadow-sm'
+                : 'text-slate-400 hover:text-white hover:bg-slate-850'
+            }`}
           >
-            {saveIndicator ? <Check className="w-4 h-4 text-emerald-300" /> : <Save className="w-4 h-4" />}
-            <span>{saveIndicator ? 'Saved & Applied!' : 'Save & Apply'}</span>
+            <Code2 className="w-4 h-4 text-indigo-400" />
+            <span>Python / SQL Code Editor &amp; GitHub Hub</span>
           </button>
         </div>
+
+        <span className="text-xs font-mono text-cyan-400 px-3 py-1 rounded-lg bg-slate-950 border border-slate-800">
+          STUDIO 3 • FLEET MESH
+        </span>
       </div>
 
-      {/* Main Workbench Grid: File Tree + Code Editor */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      {activeView === 'plc_bridge' ? (
+        <PlcBridgePanel />
+      ) : (
+        <>
+          {/* Title Header */}
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-slate-900 p-6 rounded-2xl border border-slate-800">
+            <div>
+              <div className="flex items-center gap-2 mb-1.5">
+                <span className="px-2.5 py-0.5 rounded text-xs font-mono font-bold bg-cyan-950 text-cyan-300 border border-cyan-800">
+                  WF12
+                </span>
+                <h2 className="text-xl font-bold text-white tracking-tight">
+                  In-Browser Code Editor, Big File Workbench &amp; GitHub Hub
+                </h2>
+              </div>
+              <p className="text-sm text-slate-300">
+                Edit Python pipelines, Supabase PostgreSQL schemas, and dbt contracts live in the browser. Push directly to GitHub or download project files.
+              </p>
+            </div>
+
+            {/* Global Action Buttons */}
+            <div className="flex items-center gap-3 flex-wrap">
+              <button
+                onClick={handleDownloadFullProjectBundle}
+                className="flex items-center gap-2 px-4 py-2.5 text-xs font-semibold bg-slate-800 hover:bg-slate-750 text-slate-100 border border-slate-700 rounded-xl transition cursor-pointer"
+                title="Download all editable code files as a single bundle"
+              >
+                <Download className="w-4 h-4 text-cyan-400" />
+                <span>Download Project Bundle</span>
+              </button>
+
+              <button
+                onClick={handleSaveFile}
+                className="flex items-center gap-2 px-4 py-2.5 text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl shadow-md shadow-indigo-600/30 transition cursor-pointer"
+              >
+                {saveIndicator ? <Check className="w-4 h-4 text-emerald-300" /> : <Save className="w-4 h-4" />}
+                <span>{saveIndicator ? 'Saved & Applied!' : 'Save & Apply'}</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Main Workbench Grid: File Tree + Code Editor */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Sidebar: File Explorer & GitHub Hub */}
         <div className="lg:col-span-4 space-y-4">
           {/* File Explorer Tree */}
@@ -567,6 +607,8 @@ git push -u origin main`;
           </div>
         </div>
       </div>
+        </>
+      )}
     </div>
   );
 };

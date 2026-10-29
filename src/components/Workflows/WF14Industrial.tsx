@@ -53,11 +53,12 @@ import { QuantumErrorSimulatorPanel } from '../Industrial/QuantumErrorSimulatorP
 import { UniversalConnectivityStudio } from '../Industrial/UniversalConnectivityStudio';
 import { PredictiveModelsPanel } from '../Industrial/PredictiveModelsPanel';
 import { RiskAnalysisPanel } from '../Industrial/RiskAnalysisPanel';
+import { FleetMapPanel } from '../../03-fleet/FleetMapPanel';
 
 export const WF14Industrial: React.FC = () => {
   const [activeSubTab, setActiveSubTab] = useState<
-    'brain_trainer' | 'kinematics_math' | 'machinery_scanner' | 'asset_tree' | 'reliability_spc' | 'quantum_error' | 'universal_connectivity' | 'predictive_models' | 'risk_analysis'
-  >('universal_connectivity');
+    'fleet_map' | 'brain_trainer' | 'kinematics_math' | 'machinery_scanner' | 'asset_tree' | 'reliability_spc' | 'quantum_error' | 'universal_connectivity' | 'predictive_models' | 'risk_analysis'
+  >('fleet_map');
 
   // -------------------------------------------------------------
   // TAB 1: ROBOT BRAIN & NEURAL POLICY TRAINING STATE
@@ -282,6 +283,17 @@ export const WF14Industrial: React.FC = () => {
           {/* Subtabs switcher */}
           <div className="flex items-center gap-1.5 bg-slate-950 p-1.5 rounded-xl border border-slate-800 self-start lg:self-auto flex-wrap">
             <button
+              onClick={() => setActiveSubTab('fleet_map')}
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                activeSubTab === 'fleet_map'
+                  ? 'bg-gradient-to-r from-cyan-600 to-indigo-600 text-white shadow-md shadow-cyan-950/50'
+                  : 'text-cyan-300 hover:text-white bg-cyan-950/50 border border-cyan-800/60'
+              }`}
+            >
+              <Zap className="w-3.5 h-3.5 text-cyan-300" />
+              <span>WF14 Fleet Map (Trails &amp; Heartbeat)</span>
+            </button>
+            <button
               onClick={() => setActiveSubTab('brain_trainer')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
                 activeSubTab === 'brain_trainer'
@@ -383,6 +395,13 @@ export const WF14Industrial: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* ------------------------------------------------------------- */}
+      {/* SUBTAB 0: FLEET RADAR MAP & REAL-TIME TRAILS (STUDIO 3)       */}
+      {/* ------------------------------------------------------------- */}
+      {activeSubTab === 'fleet_map' && (
+        <FleetMapPanel />
+      )}
 
       {/* ------------------------------------------------------------- */}
       {/* SUBTAB 1: ROBOT BRAIN & NEURAL POLICY TRAINING CONSOLE        */}
