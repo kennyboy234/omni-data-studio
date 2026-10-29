@@ -4,6 +4,7 @@ import { BrainStudio } from './02-brain/BrainStudio';
 import { RoiStudio } from './04-roi/RoiStudio';
 import { MagicStudio } from './05-magic/MagicStudio';
 import { WF52MatrixRain } from './05-magic/WF52MatrixRain';
+import { FleetStudio } from './03-fleet/FleetStudio';
 import {
   Database,
   Brain,
@@ -19,12 +20,13 @@ import {
   CheckCircle2,
   Cpu,
   Radio,
+  Navigation,
 } from 'lucide-react';
 
-export type StudioTab = 'foundation' | 'brain' | 'roi' | 'magic';
+export type StudioTab = 'fleet' | 'foundation' | 'brain' | 'roi' | 'magic';
 
 export default function App() {
-  const [activeStudio, setActiveStudio] = useState<StudioTab>('magic');
+  const [activeStudio, setActiveStudio] = useState<StudioTab>('fleet');
   const [showMatrixOverlay, setShowMatrixOverlay] = useState<boolean>(false);
 
   return (
@@ -56,6 +58,20 @@ export default function App() {
 
           {/* Studio Selector Tabs */}
           <nav className="flex items-center gap-1.5 bg-slate-900/90 p-1 rounded-xl border border-slate-800 overflow-x-auto">
+            {/* Fleet Map Tab (Homepage) */}
+            <button
+              onClick={() => setActiveStudio('fleet')}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition cursor-pointer shrink-0 ${
+                activeStudio === 'fleet'
+                  ? 'bg-cyan-600 text-white shadow-md shadow-cyan-900/40 ring-1 ring-cyan-400/40'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+              }`}
+            >
+              <Navigation className="w-3.5 h-3.5 text-cyan-300" />
+              <span>FLEET MAP</span>
+              <span className="text-[10px] opacity-75 hidden sm:inline">(WF14 · S3)</span>
+            </button>
+
             {/* Studio 1: FOUNDATION */}
             <button
               onClick={() => setActiveStudio('foundation')}
@@ -67,7 +83,7 @@ export default function App() {
             >
               <Database className="w-3.5 h-3.5" />
               <span>S1 · FOUNDATION</span>
-              <span className="text-[10px] opacity-75 hidden sm:inline">(WF01-03)</span>
+              <span className="text-[10px] opacity-75 hidden sm:inline">(WF01-04)</span>
             </button>
 
             {/* Studio 2: BRAIN */}
@@ -151,6 +167,7 @@ export default function App() {
 
       {/* Main Studio Viewport */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6">
+        {activeStudio === 'fleet' && <FleetStudio />}
         {activeStudio === 'foundation' && <FoundationStudio />}
         {activeStudio === 'brain' && <BrainStudio />}
         {activeStudio === 'roi' && <RoiStudio />}
@@ -165,7 +182,9 @@ export default function App() {
             <span>KEEPER OF MAIN: 100% GREEN</span>
           </div>
           <span className="text-slate-600">·</span>
-          <span>S1 Foundation (WF01-03)</span>
+          <span>S3 Fleet (WF08, 09, 12, 14)</span>
+          <span className="text-slate-600">·</span>
+          <span>S1 Foundation (WF01-04)</span>
           <span className="text-slate-600">·</span>
           <span>S2 Brain (WF05-11)</span>
           <span className="text-slate-600">·</span>

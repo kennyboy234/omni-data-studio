@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { IngestionHub } from './IngestionHub';
 import { QualityPills } from './QualityPills';
 import { Sha256LedgerView } from './Sha256Ledger';
+import { WF04LineageGraph } from './lineage';
 import {
   IngestionResult,
   generateSampleDataset,
@@ -180,6 +181,9 @@ export const FoundationStudio: React.FC = () => {
         ledger={globalLedger}
         currentDatasetHash={currentHash}
       />
+
+      {/* WF04 Lineage Graph */}
+      <WF04LineageGraph />
     </div>
   );
 };
