@@ -67,7 +67,6 @@ export const WF07MachineLearning: React.FC<WF07Props> = ({
     activeModelArtifact ? [activeModelArtifact.evaluation] : []
   );
   const [isTraining, setIsTraining] = useState<boolean>(false);
-  const [trainingError, setTrainingError] = useState<string | null>(null);
 
   const toggleFeature = (col: string) => {
     if (selectedFeatures.includes(col)) {
@@ -145,8 +144,7 @@ export const WF07MachineLearning: React.FC<WF07Props> = ({
         onModelTrained(artifact);
       }
     } catch (err: any) {
-      console.error('Model training error:', err);
-      setTrainingError(`Model training error: ${err.message}`);
+      alert(`Model training error: ${err.message}`);
     } finally {
       setIsTraining(false);
     }
@@ -265,12 +263,6 @@ export const WF07MachineLearning: React.FC<WF07Props> = ({
               <Play className="w-3.5 h-3.5 fill-current" />
               <span>{isTraining ? 'Training...' : 'Train Models & Compare Baselines'}</span>
             </button>
-
-            {trainingError && (
-              <div className="mt-2 p-2.5 rounded-lg bg-red-950/60 border border-red-800 text-xs text-red-200">
-                {trainingError}
-              </div>
-            )}
           </div>
         </div>
 
