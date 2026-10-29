@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FoundationStudio } from './01-foundation/FoundationStudio';
 import { BrainStudio } from './02-brain/BrainStudio';
 import { RoiStudio } from './04-roi/RoiStudio';
 import { MagicStudio } from './05-magic/MagicStudio';
 import { WF52MatrixRain } from './05-magic/WF52MatrixRain';
 import { FleetStudio } from './03-fleet/FleetStudio';
+import { AuditDashboard } from './00-audit/AuditDashboard';
 import {
   Database,
   Brain,
@@ -21,13 +22,52 @@ import {
   Cpu,
   Radio,
   Navigation,
+  ShieldCheck,
 } from 'lucide-react';
 
-export type StudioTab = 'fleet' | 'foundation' | 'brain' | 'roi' | 'magic';
+export type StudioTab = 'fleet' | 'foundation' | 'brain' | 'roi' | 'magic' | 'audit';
 
 export default function App() {
-  const [activeStudio, setActiveStudio] = useState<StudioTab>('fleet');
+  // Support /audit route and #audit hash
+  const getInitialStudio = (): StudioTab => {
+    if (typeof window !== 'undefined') {
+      const path = window.location.pathname.toLowerCase();
+      const hash = window.location.hash.toLowerCase();
+      if (path === '/audit' || hash === '#audit') {
+        return 'audit';
+      }
+    }
+    return 'fleet';
+  };
+
+  const [activeStudio, setActiveStudio] = useState<StudioTab>(getInitialStudio);
   const [showMatrixOverlay, setShowMatrixOverlay] = useState<boolean>(false);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      const path = window.location.pathname.toLowerCase();
+      const hash = window.location.hash.toLowerCase();
+      if (path === '/audit' || hash === '#audit') {
+        setActiveStudio('audit');
+      } else {
+        setActiveStudio('fleet');
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  const handleSelectTab = (tab: StudioTab) => {
+    setActiveStudio(tab);
+    if (typeof window !== 'undefined') {
+      if (tab === 'audit') {
+        window.history.pushState(null, '', '/audit');
+      } else {
+        window.history.pushState(null, '', '/');
+      }
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#020617] text-slate-100 flex flex-col font-sans selection:bg-cyan-500/30 selection:text-cyan-200">
@@ -60,7 +100,7 @@ export default function App() {
           <nav className="flex items-center gap-1.5 bg-slate-900/90 p-1 rounded-xl border border-slate-800 overflow-x-auto">
             {/* Fleet Map Tab (Homepage) */}
             <button
-              onClick={() => setActiveStudio('fleet')}
+              onClick={() => handleSelectTab('fleet')}
               className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition cursor-pointer shrink-0 ${
                 activeStudio === 'fleet'
                   ? 'bg-cyan-600 text-white shadow-md shadow-cyan-900/40 ring-1 ring-cyan-400/40'
@@ -74,7 +114,7 @@ export default function App() {
 
             {/* Studio 1: FOUNDATION */}
             <button
-              onClick={() => setActiveStudio('foundation')}
+              onClick={() => handleSelectTab('foundation')}
               className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-mono font-semibold transition cursor-pointer shrink-0 ${
                 activeStudio === 'foundation'
                   ? 'bg-cyan-600 text-white shadow-md shadow-cyan-900/40'
@@ -88,7 +128,7 @@ export default function App() {
 
             {/* Studio 2: BRAIN */}
             <button
-              onClick={() => setActiveStudio('brain')}
+              onClick={() => handleSelectTab('brain')}
               className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-mono font-semibold transition cursor-pointer shrink-0 ${
                 activeStudio === 'brain'
                   ? 'bg-indigo-600 text-white shadow-md shadow-indigo-900/40'
@@ -102,7 +142,7 @@ export default function App() {
 
             {/* Studio 4: ROI */}
             <button
-              onClick={() => setActiveStudio('roi')}
+              onClick={() => handleSelectTab('roi')}
               className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-mono font-semibold transition cursor-pointer shrink-0 ${
                 activeStudio === 'roi'
                   ? 'bg-emerald-600 text-white shadow-md shadow-emerald-900/40'
@@ -116,7 +156,7 @@ export default function App() {
 
             {/* Studio 5: THE CLOSER (MAGIC) */}
             <button
-              onClick={() => setActiveStudio('magic')}
+              onClick={() => handleSelectTab('magic')}
               className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-mono font-semibold transition cursor-pointer shrink-0 ${
                 activeStudio === 'magic'
                   ? 'bg-purple-600 text-white shadow-md shadow-purple-900/40'
@@ -126,6 +166,22 @@ export default function App() {
               <Sparkles className="w-3.5 h-3.5" />
               <span>S5 · THE CLOSER (MAGIC)</span>
               <span className="text-[10px] opacity-75 hidden sm:inline">(WF51-53)</span>
+            </button>
+
+            {/* AUDIT Tab (WF01-WF120) */}
+            <button
+              onClick={() => handleSelectTab('audit')}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition cursor-pointer shrink-0 ${
+                activeStudio === 'audit'
+                  ? 'bg-gradient-to-r from-emerald-600 to-cyan-600 text-white shadow-md shadow-emerald-900/40 ring-1 ring-emerald-400/50'
+                  : 'text-emerald-400 hover:text-emerald-300 hover:bg-emerald-950/40 border border-emerald-500/30'
+              }`}
+            >
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+              <span>AUDIT</span>
+              <span className="text-[10px] px-1.5 py-0.2 rounded bg-emerald-900/80 text-emerald-300 font-extrabold border border-emerald-600/40">
+                120/120
+              </span>
             </button>
           </nav>
         </div>
@@ -172,6 +228,7 @@ export default function App() {
         {activeStudio === 'brain' && <BrainStudio />}
         {activeStudio === 'roi' && <RoiStudio />}
         {activeStudio === 'magic' && <MagicStudio />}
+        {activeStudio === 'audit' && <AuditDashboard />}
       </main>
 
       {/* Global Defense Mesh Telemetry Footer */}
@@ -191,6 +248,8 @@ export default function App() {
           <span>S4 ROI (WF15, 13, 07)</span>
           <span className="text-slate-600">·</span>
           <span>S5 Magic (WF51-53)</span>
+          <span className="text-slate-600">·</span>
+          <span className="text-emerald-400">Audit (WF01-120 Verified)</span>
         </div>
 
         <div className="flex items-center gap-4 text-slate-500 text-[11px]">
@@ -202,3 +261,4 @@ export default function App() {
     </div>
   );
 }
+

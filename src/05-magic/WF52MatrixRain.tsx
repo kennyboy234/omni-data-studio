@@ -32,7 +32,6 @@ export const WF52MatrixRain: React.FC<WF52MatrixRainProps> = ({
   const [isRunning, setIsRunning] = useState(true);
   const [isFullscreenModal, setIsFullscreenModal] = useState(initialFullscreen);
   const [loadingProgress, setLoadingProgress] = useState(42);
-  const [currentTaskIndex, setCurrentTaskIndex] = useState(1);
   const [audioHumEnabled, setAudioHumEnabled] = useState(false);
 
   const [config, setConfig] = useState<MatrixRainConfig>({
@@ -50,6 +49,7 @@ export const WF52MatrixRain: React.FC<WF52MatrixRainProps> = ({
   const dropsRef = useRef<number[]>([]);
   const audioContextRef = useRef<AudioContext | null>(null);
   const oscillatorRef = useRef<OscillatorNode | null>(null);
+  const onFinishedCalledRef = useRef(false);
 
   const PIPELINE_TASKS = [
     'INGESTING 1,000,000 TELEMETRY SAMPLES/SEC',
@@ -60,9 +60,27 @@ export const WF52MatrixRain: React.FC<WF52MatrixRainProps> = ({
     'CALCULATING HARD-DOLLAR NET PREVENTED VALUE',
   ];
 
+  const currentTaskIndex = Math.min(
+    PIPELINE_TASKS.length - 1,
+    Math.floor((loadingProgress / 100) * PIPELINE_TASKS.length)
+  );
+
   // Character set: Katakana + Hex + Latin + Digits
   const CHARACTERS =
     'ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜﾝ0123456789ABCDEF0123456789<>[]{}+=*&%$#@!';
+
+  // Safely trigger onFinishedLoading callback when progress hits 100%
+  useEffect(() => {
+    if (loadingProgress < 100) {
+      onFinishedCalledRef.current = false;
+    } else if (onFinishedLoading && !onFinishedCalledRef.current) {
+      onFinishedCalledRef.current = true;
+      const timer = setTimeout(() => {
+        onFinishedLoading();
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [loadingProgress, onFinishedLoading]);
 
   // Web Audio synthesizer for matrix sci-fi background hum
   const toggleAudioHum = () => {
@@ -110,27 +128,18 @@ export const WF52MatrixRain: React.FC<WF52MatrixRainProps> = ({
     };
   }, []);
 
-  // Simulated loading progress ticker
+  // Simulated loading progress ticker (pure state updater without side effects)
   useEffect(() => {
     if (!isRunning) return;
     const interval = setInterval(() => {
       setLoadingProgress((prev) => {
-        if (prev >= 100) {
-          if (onFinishedLoading) onFinishedLoading();
-          return 100;
-        }
-        const next = prev + Math.floor(Math.random() * 8) + 3;
-        const taskIdx = Math.min(
-          PIPELINE_TASKS.length - 1,
-          Math.floor((next / 100) * PIPELINE_TASKS.length)
-        );
-        setCurrentTaskIndex(taskIdx);
-        return Math.min(100, next);
+        if (prev >= 100) return 100;
+        return Math.min(100, prev + Math.floor(Math.random() * 8) + 3);
       });
     }, 450);
 
     return () => clearInterval(interval);
-  }, [isRunning, onFinishedLoading]);
+  }, [isRunning]);
 
   // Main Canvas Rendering Engine
   useEffect(() => {

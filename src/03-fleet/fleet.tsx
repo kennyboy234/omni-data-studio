@@ -234,7 +234,7 @@ export const WF14FleetMap: React.FC = () => {
   const [activeTwinVehicle, setActiveTwinVehicle] = useState<Vehicle | null>(null); // For opening WF08!
   const [isPlaying, setIsPlaying] = useState<boolean>(true);
   const [simSpeed, setSimSpeed] = useState<number>(1); // 1x, 2x, 5x
-  const [leafletReady, setLeafletReady] = useState<boolean>(false);
+  const [leafletLib, setLeafletLib] = useState<any>(null);
 
   const vehiclesRef = useRef<Vehicle[]>(vehicles);
   vehiclesRef.current = vehicles;
@@ -247,33 +247,34 @@ export const WF14FleetMap: React.FC = () => {
     let isMounted = true;
     Promise.all([
       import('leaflet'),
-      import('leaflet/dist/leaflet.css' as any)
-    ]).then(([leafletMod]) => {
-      if (!isMounted || !mapContainerRef.current) return;
-      const L = (leafletMod as any).default || leafletMod;
-      leafletRef.current = L;
+      import('leaflet/dist/leaflet.css' as any),
+    ])
+      .then(([mod]) => {
+        if (!isMounted || !mapContainerRef.current) return;
+        const L = (mod as any).default || mod;
+        setLeafletLib(L);
 
-      const map = L.map(mapContainerRef.current, {
-        center: [37.775, -122.42],
-        zoom: 13,
-        zoomControl: false,
-        attributionControl: false,
+        const map = L.map(mapContainerRef.current, {
+          center: [37.775, -122.42],
+          zoom: 13,
+          zoomControl: false,
+          attributionControl: false,
+        });
+
+        // Dark tactical CartoDB tile layer
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+          maxZoom: 19,
+          subdomains: 'abcd',
+        }).addTo(map);
+
+        // Zoom controls at bottom-right
+        L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+        mapInstanceRef.current = map;
+      })
+      .catch((err) => {
+        console.warn('Leaflet load deferred or fallback:', err);
       });
-
-      // Dark tactical CartoDB tile layer
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        maxZoom: 19,
-        subdomains: 'abcd',
-      }).addTo(map);
-
-      // Zoom controls at bottom-right
-      L.control.zoom({ position: 'bottomright' }).addTo(map);
-
-      mapInstanceRef.current = map;
-      setLeafletReady(true);
-    }).catch((err) => {
-      console.warn('Leaflet load deferred or fallback:', err);
-    });
 
     return () => {
       isMounted = false;
@@ -287,7 +288,8 @@ export const WF14FleetMap: React.FC = () => {
   // Update Markers & Trails on Map
   useEffect(() => {
     const map = mapInstanceRef.current;
-    if (!map) return;
+    const L = leafletLib;
+    if (!map || !L) return;
 
     vehicles.forEach((v) => {
       // 1. Trail Polyline
