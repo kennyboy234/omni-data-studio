@@ -23,6 +23,7 @@ import { SpssEviewsStudio } from './components/SpssEviewsStudio';
 import { ExcelTableauStudio } from './components/ExcelTableauStudio';
 import { FeatureStatusModal } from './components/FeatureStatusModal';
 import { ChaosStressTestModal } from './components/ChaosStressTestModal';
+import { OmniDataStudio } from './components/OmniDataStudio';
 import {
   CleaningStep,
   DataQualityAssertion,
@@ -57,6 +58,7 @@ export default function App() {
   const [datasets, setDatasets] = useState<Dataset[]>(() => getSampleDatasets());
   const [activeDatasetId, setActiveDatasetId] = useState<string>(() => datasets[0]?.id || 'ds_saas_churn');
   const [activeTab, setActiveTab] = useState<WorkflowId>('WF01');
+  const [studioMode, setStudioMode] = useState<'omnidata_studio' | 'workbench'>('omnidata_studio');
   const [isCopilotOpen, setIsCopilotOpen] = useState<boolean>(false);
   const [isNoviceMode, setIsNoviceMode] = useState<boolean>(true);
   const [isAuthOpen, setIsAuthOpen] = useState<boolean>(false);
@@ -265,8 +267,122 @@ export default function App() {
     );
   };
 
+  if (studioMode === 'omnidata_studio') {
+    return (
+      <div className="min-h-screen bg-white text-[#111827]">
+        <OmniDataStudio
+          onOpenCopilot={() => setIsCopilotOpen(true)}
+          onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
+          onOpenReport={() => {
+            setStudioMode('workbench');
+            setActiveTab('WF09');
+          }}
+          onOpenFeatureStatus={() => setIsFeatureStatusOpen(true)}
+          onOpenChaosLab={() => setIsChaosLabOpen(true)}
+          onOpenBrain={() => {
+            setBrainInitialTab('reviews');
+            setIsBrainOpen(true);
+          }}
+          onSwitchStudioMode={(mode) => setStudioMode(mode)}
+        />
+
+        {/* Global Modals */}
+        <OmniCopilot
+          isOpen={isCopilotOpen}
+          onClose={() => setIsCopilotOpen(false)}
+          activeDataset={activeDataset}
+          validationReport={validationReport}
+          splitResult={splitResult}
+          modelArtifact={activeModelArtifact}
+          cleaningStepsCount={cleaningSteps.length}
+          onNavigateWorkflow={(wf) => {
+            setStudioMode('workbench');
+            setActiveTab(wf);
+            setIsCopilotOpen(false);
+          }}
+          isNoviceMode={isNoviceMode}
+          onToggleNoviceMode={() => setIsNoviceMode((prev) => !prev)}
+        />
+
+        <CommandPalette
+          isOpen={isCommandPaletteOpen}
+          onClose={() => setIsCommandPaletteOpen(false)}
+          onNavigateWorkflow={(wf) => {
+            setStudioMode('workbench');
+            setActiveTab(wf);
+            setIsCommandPaletteOpen(false);
+          }}
+          onRunPipeline={handleRunFullPipeline}
+          onOpenCopilot={() => {
+            setIsCopilotOpen(true);
+            setIsCommandPaletteOpen(false);
+          }}
+          onOpenAuth={() => {
+            setIsAuthOpen(true);
+            setIsCommandPaletteOpen(false);
+          }}
+          onOpenBrain={() => {
+            setIsBrainOpen(true);
+            setIsCommandPaletteOpen(false);
+          }}
+          onOpenSpssEviews={() => {
+            setIsSpssOpen(true);
+            setIsCommandPaletteOpen(false);
+          }}
+          onOpenExcelTableau={() => {
+            setIsExcelTableauOpen(true);
+            setIsCommandPaletteOpen(false);
+          }}
+          onSelectDataset={setActiveDatasetId}
+        />
+
+        <JudgeAndMemoryModal
+          isOpen={isBrainOpen}
+          onClose={() => setIsBrainOpen(false)}
+          activeDataset={activeDataset}
+          rawDataset={rawDataset}
+          validationReport={validationReport}
+          cleaningSteps={cleaningSteps}
+          splitResult={splitResult}
+          modelArtifact={activeModelArtifact}
+          currentUser={currentUser}
+          initialTab={brainInitialTab}
+          onNavigateWorkflow={(wf) => {
+            setStudioMode('workbench');
+            setActiveTab(wf as WorkflowId);
+            setIsBrainOpen(false);
+          }}
+        />
+
+        <FeatureStatusModal
+          isOpen={isFeatureStatusOpen}
+          onClose={() => setIsFeatureStatusOpen(false)}
+        />
+
+        <ChaosStressTestModal
+          isOpen={isChaosLabOpen}
+          onClose={() => setIsChaosLabOpen(false)}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans flex flex-col">
+      {/* Top Banner to switch back to OmniData Studio */}
+      <div className="bg-teal-900/60 border-b border-teal-700/50 px-4 py-1.5 flex items-center justify-between text-xs text-teal-200">
+        <span className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-teal-400 animate-pulse" />
+          <span>Deep Engineering Workbench Active</span>
+        </span>
+        <button
+          onClick={() => setStudioMode('omnidata_studio')}
+          className="bg-teal-700 hover:bg-teal-600 text-white font-semibold px-3 py-0.5 rounded-full text-[11px] transition cursor-pointer"
+        >
+          Return to OmniData Studio Dashboard
+        </button>
+      </div>
+
       {/* Top Header */}
       <Header
         datasets={datasets}
