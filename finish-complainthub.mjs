@@ -1,0 +1,41 @@
+import { readFileSync, writeFileSync } from 'node:fs';
+const path = 'c:/Users/USER/Documents/omni-data-studio/src/components/OmniDataStudio.tsx';
+let s = readFileSync(path, 'utf8');
+const a = s.indexOf('const LEGACY_WORKFLOW_EXAMPLES:');
+const b = s.indexOf('// Generate the full', a);
+s = s.slice(0, a) + s.slice(b);
+s = s.replace('n <= 9520', 'n <= 9570').replace('n - 9520', 'n - 9570').replace('`SF-${', '`SFC-${');
+s = s.replace('`Siemens S7-1500 PLC Read/Write DB${Math.floor(tagNum / 10)}.DBX${tagNum % 8}`', '`Siemens S7-1500 Read Tag DB${1 + Math.floor((tagNum - 1) / 64)}.DBX${Math.floor((tagNum - 1) % 64 / 8)}.${(tagNum - 1) % 8}`');
+s = s.replace("group = 'GROUP4';\n    } else if (n <= 1870)", "group = 'GROUP1';\n    } else if (n <= 1870)");
+s = s.replace('Deterministic analytical function ${id} executing validated mathematical model within OmniData Studio v6.3 runtime.', 'Demo catalog contract ${id}; describes an integration scope, not an independently verified executable function.');
+s = s.replace('Metric Output [0..1] + Quality Flag Good + Cryptographic Seal #142', 'Simulated metric preview; no controller read, certified signature, or verified receipt');
+const csvStart = s.indexOf("    let csv = 'ID,Name,Prompt");
+const csvEnd = s.indexOf('    const blob = new Blob([csv]', csvStart);
+s = s.slice(0, csvStart) + '    const csv = functionsToCSV(ALL_FUNCTIONS_13500);\n' + s.slice(csvEnd);
+s = s.replaceAll('document.body.removeChild(link);', 'document.body.removeChild(link);\n    setTimeout(() => URL.revokeObjectURL(url), 1000);');
+const mdStart = s.indexOf('    let md = `# OmniData');
+const mdEnd = s.indexOf('    const blob = new Blob([md]', mdStart);
+s = s.slice(0, mdStart) + '    const md = masterDocument;\n' + s.slice(mdEnd);
+s = s.replace('verifiedBlocks: 142', 'verifiedBlocks: 0, demoMode: true, suppliedHeadReference: 142');
+s = s.replaceAll("status: 'VERIFIED_IMMUTABLE'", "status: 'UNVERIFIED_DEMO_SAMPLE'");
+s = s.replace('Cryptographic ledger verification with Merkle root hash and operator digital signatures.', 'Two supplied demo entries only; not a verified 142-block chain or authenticated signatures.');
+s = s.replace('142 BLOCKS', '2 DEMO ENTRIES');
+s = s.replace('Real-time telemetry from Siemens', 'Simulated telemetry for Siemens');
+s = s.replace('{/* TAB 10: ADD-INS */}', '{/* TAB 10: ADD-INS */}');
+s = s.replace('<div className="grid grid-cols-1 md:grid-cols-2 gap-3">\n                <div className="bg-[#0B1220]', `<div className="flex gap-2"><button className="bg-[#14B8A6] text-white px-3 py-2 rounded" onClick={() => setModalType('plc')}>PLC Tags — 1,240</button></div>\n              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">\n                <div className="bg-[#0B1220]`);
+s = s.replace('Verified Evidence Blocks (Ledger #140-#142)', 'Demo Evidence References (not cryptographically verified)');
+s = s.replace('Re-Verify All Hashes', 'Feature Registry / Trust Ledger');
+s = s.replaceAll('VERIFIED SEAL', 'DEMO REFERENCE');
+s = s.replace('onClick={handleExportCSV}\n                    className="px-3', "onClick={() => setModalType('export')}\n                    className=\"px-3");
+s = s.replace('Certified PDF/Excel', 'CFO Export Options');
+s = s.replace("{modalType === 'export' && (\n              <div className=\"space-y-3\">", "{modalType === 'export' && (\n              <div className=\"space-y-3\"><p className=\"p-2 bg-amber-50 rounded\">CSV, master Markdown, and demo JSON are available. Certified PDF/Excel requires validated evidence and a reporting/signature service; not connected.</p><button className=\"text-teal-700 underline\" onClick={() => setModalType('roi')}>Inspect CFO scenario Input / Output / Formula</button>");
+s = s.replace('Current Block Height: #142', 'Ledger Path: /ledger/trust_receipts.json (configuration only; no server persistence)');
+s = s.replace('Compliance Standard: FDA 21 CFR Part 11 & ISO 9001:2015 Clause 8.7', '120/120 workflow specification contracts loaded — not an execution or compliance audit');
+// Ensure previous alert-only controls provide a visible result instead of browser popups.
+s = s.replace(/alert\(([^;]+)\);/g, 'setCopyExportNotice($1);');
+s = s.replace(/onClick=\{\(\) => alert\(([^\n]+)\)\}/g, 'onClick={() => setCopyExportNotice($1)}');
+s = s.replace('    <div className="min-h-screen', '    <div className="min-h-screen');
+s = s.replace('      {/* 5. Modals', `      <footer className="sticky bottom-0 z-20 bg-white border-t border-[#E5E7EB] p-2 text-[10px] text-gray-600">Demo • 13,500 catalog contracts • Good cap locked | Light mode v6.3 • TAB: {activeTab} • Ctrl+K • {factory} • DEMO_MODE=true</footer>
+      <button aria-label="New complaint" onClick={() => setModalType('new_complaint')} className="fixed bottom-12 right-4 z-30 w-10 h-10 bg-[#14B8A6] text-white rounded-full text-xl shadow-lg">+</button>
+      {/* 5. Modals`);
+writeFileSync(path, s);

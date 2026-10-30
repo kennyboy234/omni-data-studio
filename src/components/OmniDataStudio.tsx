@@ -1,3 +1,5 @@
+import { masterDocument, parseMasterWorkflows, functionsToCSV, calculatePSI } from '../utils/complaintHub';
+import { ComplaintActionPanel, FormulaBrowser, PLCTagBrowser, NewComplaintForm, AddinConfigForm } from './ComplaintHubPanels';
 import React, { useState, useMemo, useEffect } from 'react';
 import {
   Search,
@@ -85,321 +87,7 @@ export interface DetailedFunction {
 }
 
 // 120 Core Workflows + Representative Master Directory
-export const CORE_120_WORKFLOWS: DetailedFunction[] = [
-  {
-    id: 'WF01',
-    name: 'Intake Hub 7 Channels',
-    prompt: 'Ingest complaints from CSV, Email, WhatsApp, QR, IoT, Voice, and API — unifies incoming unstructured issues into standardized C-##### records with cryptographic provenance.',
-    input: 'File / Email / WhatsApp msg / QR scan / PLC tag / Voice wav / API JSON',
-    output: 'Standardized Complaint Record C-##### + Trust Receipt #142 + Parsed field attributes',
-    formula: 'Parse → Dedupe → Trust Hash SHA-256 → Route',
-    group: 'GROUP1',
-    tab: 'INTAKE',
-    factory: 'All',
-    category: 'Ingestion & Standardization',
-  },
-  {
-    id: 'WF02',
-    name: 'Data Quality Contracts & Assertions',
-    prompt: 'Autonomous schema validation, type inference, completeness scoring, and non-blocking contract evaluation per Great Expectations standard.',
-    input: 'Raw incoming batch data + Defined quality assertions contract',
-    output: 'Validation Report (Pass/Fail) + Completeness % + Contract Violation Digest',
-    formula: 'Quality_Score = (Pass_Count / Total_Checks) * 100',
-    group: 'GROUP1',
-    tab: 'INTAKE',
-    factory: 'All',
-    category: 'Quality & Ingestion',
-  },
-  {
-    id: 'WF03',
-    name: 'Cryptographic Provenance & Lineage Audit',
-    prompt: 'Generates immutable append-only version snapshots with parent hash linkage; source datasets remain strictly read-only and immutable.',
-    input: 'Dataset version v_n + Transformation operation log',
-    output: 'Snapshot v_(n+1) + Merkle lineage DAG root hash',
-    formula: 'Hash_(n+1) = SHA-256(Hash_n || Operation_Log || UTC_Timestamp)',
-    group: 'GROUP3',
-    tab: 'QUALITY',
-    factory: 'All',
-    category: 'Validation & Ledger',
-  },
-  {
-    id: 'WF04',
-    name: 'Statistical EDA & Welch t-Test Engine',
-    prompt: 'Automated hypothesis testing, parametric/non-parametric distribution fit, Welch t-test (unequal variances), and Spearman rank correlation matrix.',
-    input: 'Continuous features x_1, x_2 + Categorical target split y',
-    output: 'p-values, t-statistic, Cohen d effect size, Pearson & Spearman matrices',
-    formula: 't = (x̄_1 - x̄_2) / √(s_1²/n_1 + s_2²/n_2); df = Welch-Satterthwaite',
-    group: 'GROUP5',
-    tab: 'ANALYTICS',
-    factory: 'All',
-    category: 'Exploratory & Statistics',
-  },
-  {
-    id: 'WF05',
-    name: 'Drift Watchtower PSI>0.25',
-    prompt: 'Continuous covariate drift monitoring for payment_latency_ms and sensor tags with Population Stability Index (PSI > 0.25) and two-sample Kolmogorov-Smirnov test (p < 0.05).',
-    input: 'Baseline batch (30d) + Current streaming batch + Drift threshold (PSI > 0.25)',
-    output: 'Drift Alert + PSI quantile matrix + Kolmogorov D statistic + Retrain recommendation',
-    formula: 'PSI = ∑ (Actual_i - Baseline_i) * ln(Actual_i / Baseline_i)',
-    group: 'GROUP5',
-    tab: 'ANALYTICS',
-    factory: 'All',
-    category: 'Drift & Model Guard',
-  },
-  {
-    id: 'WF06',
-    name: 'Anomaly Pulse Real-time',
-    prompt: 'Sub-millisecond multivariate Mahalanobis distance & real-time CUSUM / Isolation Forest on financial loss, cycle times, and PLC throughput telemetry.',
-    input: 'Streaming complaint metrics, financial loss vector, cycle time series',
-    output: 'Anomaly flag (0/1) + Anomaly Score [0..1] + Attributed Root Channel',
-    formula: 'D_M(x) = √((x - μ)^T Σ^-1 (x - μ)), flag IF score > 0.6',
-    group: 'GROUP5',
-    tab: 'ANALYTICS',
-    factory: 'All',
-    category: 'Anomaly Detection',
-  },
-  {
-    id: 'WF07',
-    name: 'Automated Machine Learning Benchmark',
-    prompt: 'Trains competing models (Logistic, Random Forest, Gradient Boost, LightGBM) with zero leakage on strict train/test partitions.',
-    input: 'X_train, y_train, X_test, y_test with fitted pipeline scalers',
-    output: 'Leaderboard, F1-macro, ROC-AUC, Brier score, Confusion matrix',
-    formula: 'F1 = 2 * (Precision * Recall) / (Precision + Recall)',
-    group: 'GROUP5',
-    tab: 'ANALYTICS',
-    factory: 'All',
-    category: 'Machine Learning',
-  },
-  {
-    id: 'WF08',
-    name: 'Operational Executive Cockpit',
-    prompt: 'Real-time multi-dimensional aggregation across 34 active complaints, SLA status, financial loss exposure, and factory MTBF.',
-    input: 'Consolidated incident records + Filter dimensions',
-    output: 'Interactive dashboard cards, MTBF gauges, Loss Pareto charts',
-    formula: 'MTBF = Total_Operating_Hours / Total_Failures',
-    group: 'GROUP5',
-    tab: 'HOME',
-    factory: 'All',
-    category: 'Dashboards & Reporting',
-  },
-  {
-    id: 'WF09',
-    name: 'Certified Audit Manifest & Reproducibility',
-    prompt: 'Generates reproducible Python/Pandas manifests and cryptographically signed PDF/Excel audit reports for regulatory compliance.',
-    input: 'Full session DAG lineage + Statistical outputs + Operator digital signature',
-    output: 'Reproducible script .py + Signed JSON manifest + Audit PDF',
-    formula: 'Manifest_Digest = HMAC-SHA256(Secret_Key, Canonical_JSON_Bytes)',
-    group: 'GROUP5',
-    tab: 'FILE',
-    factory: 'All',
-    category: 'Reporting & Lineage',
-  },
-  {
-    id: 'WF10',
-    name: 'Causal Graph Pearl DAG',
-    prompt: 'Judea Pearl structural causal models (SCM) verifying true causal mechanism (e.g. payment_latency_ms → customer_complaint) using do-calculus and backdoor adjustment.',
-    input: 'Observational complaints log + payment_latency + machine status + operator shift',
-    output: 'Directed Acyclic Graph (DAG) + Causal Average Treatment Effect (ATE) + SHAP values',
-    formula: 'P(Y | do(X = x)) = ∑_z P(Y | X = x, Z = z) P(Z = z)',
-    group: 'GROUP4',
-    tab: 'INVESTIGATION',
-    factory: 'All',
-    category: 'Causal Inference',
-  },
-  {
-    id: 'WF11',
-    name: 'Manifold 3D Embeddings',
-    prompt: 'WebGL 3D t-SNE / UMAP manifold visualization with ACES tone mapping projecting 13,500 functions and complaint feature vectors in metric space.',
-    input: '768-dim high-dimensional feature embeddings + cosine metric',
-    output: 'Interactive 3D manifold projection with semantic cluster coordinates [x, y, z]',
-    formula: 'KL(P || Q) = ∑_i ∑_j p_ij * log(p_ij / q_ij)',
-    group: 'GROUP4',
-    tab: 'INVESTIGATION',
-    factory: 'All',
-    category: 'Dimensionality & Manifold',
-  },
-  {
-    id: 'WF20',
-    name: 'Smart Priority Matrix P1-P4',
-    prompt: 'Multi-criteria weighted scoring algorithm classifying incoming complaints into P1 (Critical), P2 (High), P3 (Medium), and P4 (Low) based on safety, loss, and customer impact.',
-    input: 'Financial impact ($) + Safety risk rating [1..5] + Customer tier + Asset criticality',
-    output: 'Priority level (P1-P4) + SLA deadline timestamp + Escalation routing path',
-    formula: 'Score = 0.40 * Norm(Loss) + 0.35 * Safety + 0.15 * Asset + 0.10 * Tier',
-    group: 'GROUP2',
-    tab: 'TRIAGE',
-    factory: 'All',
-    category: 'Triage & Priority',
-  },
-  {
-    id: 'WF25',
-    name: 'Automated Skill-Based Routing',
-    prompt: 'Dynamic dispatch allocating complaints to specialized cross-functional squads (Reliability, Mechanical, Electrical, Software, Quality) using workload balancing.',
-    input: 'Complaint classification vector + Engineer skill matrix + Current squad backlog',
-    output: 'Optimal Assignee ID + Squad Routing Tag + ETA to First Response',
-    formula: 'Assignee* = argmin_k (Backlog_k / MaxCapacity_k) where Skill_k ≥ Requirement',
-    group: 'GROUP2',
-    tab: 'TRIAGE',
-    factory: 'All',
-    category: 'Routing & Workforce',
-  },
-  {
-    id: 'WF29',
-    name: 'FMEA Auto-Open 3 leaks Facility 12',
-    prompt: 'Automated FMEA ticket escalation per AIAG-VDA 1st Edition when 3 hydraulic leaks occur within 48 hours at Facility 12, computing Severity, Occurrence, Detection, and Action Priority.',
-    input: '3x C-10284 Leak Line 7 Facility 12 + Asset Sensor Telemetry',
-    output: 'Certified FMEA Sheet with RPN = S * O * D + Action Priority (HIGH) + Assigned Owner',
-    formula: 'RPN = S(1-10) * O(1-10) * D(1-10); AP = f_AIAG(S, O, D)',
-    group: 'GROUP4',
-    tab: 'RESOLUTION',
-    factory: 'Factory 12',
-    category: 'Reliability & FMEA',
-  },
-  {
-    id: 'WF32',
-    name: '8D Problem Solving Methodology',
-    prompt: 'End-to-end Ford 8D disciplined problem-solving workflow (D1 Team through D8 Congratulate Team) with root cause containment and verification.',
-    input: 'Incident Master Ticket + Containment action log + 5-Why root cause verification',
-    output: '8D Certificate + Corrective Action Plan + Recurrence Prevention Lock',
-    formula: 'D4_RootCause = Backdoor_Adjustment(Ishikawa_Factors)',
-    group: 'GROUP4',
-    tab: 'RESOLUTION',
-    factory: 'All',
-    category: 'Problem Solving & 8D',
-  },
-  {
-    id: 'WF38',
-    name: 'Trust Receipt #142 SHA-256 Ledger',
-    prompt: 'Cryptographic immutable proof chain for auditability complying with FDA 21 CFR Part 11 and ISO 9001:2015 Clause 8.7, hashing telemetry, timestamps, and operator identity.',
-    input: 'Complaint payload + Sensor log JSON + PLC tag snapshot + Operator signature',
-    output: 'Trust Receipt #142 with SHA256:a3f5c9e8d2b1... + Blockchain-style verified seal',
-    formula: 'SHA-256(canonical_payload || UTC_timestamp || parent_block_hash)',
-    group: 'GROUP3',
-    tab: 'QUALITY',
-    factory: 'All',
-    category: 'Regulatory & Trust',
-  },
-  {
-    id: 'WF45',
-    name: 'Levenshtein Deduplication & Entity Resolution',
-    prompt: 'Clustering duplicate or near-identical incoming complaints across multiple communication channels using normalized Levenshtein distance and semantic embedding similarity.',
-    input: 'Incoming complaint text + Historical ticket database (30d window)',
-    output: 'Duplicate probability score [0..1] + Parent ticket link + Merge recommendation',
-    formula: 'Similarity = 1 - (Levenshtein_Dist(s1, s2) / max(len(s1), len(s2)))',
-    group: 'GROUP3',
-    tab: 'INTAKE',
-    factory: 'All',
-    category: 'Deduplication & Cleanse',
-  },
-  {
-    id: 'WF60',
-    name: 'Siemens S7-1500 PLC DB1 Tag Bridge',
-    prompt: 'Industrial S7 communication adapter polling data block tags (DB1.DBX0.0, DB10.DBD4) with sub-second polling and zero physical PLC write execution in DEMO_MODE.',
-    input: 'PLC IP 192.168.1.100, Rack 0, Slot 1, DB number 1, Byte offset 0',
-    output: 'Tag Value: TRUE/FALSE, Quality: Good, Timestamp UTC, Trust Receipt Hash',
-    formula: 'Read_DB_Byte(Rack, Slot, DB, Offset) → Check_Demo_Lock() → Emit_Telemetry',
-    group: 'GROUP4',
-    tab: 'INDUSTRIAL AUTOMATION',
-    factory: 'Siemens S7-1500',
-    category: 'Industrial Automation',
-  },
-  {
-    id: 'WF65',
-    name: 'Rockwell EtherNet/IP CIP Tag Driver',
-    prompt: 'Common Industrial Protocol (CIP) driver communicating with ControlLogix/CompactLogix controllers for real-time vibration and thermal fault monitoring.',
-    input: 'EtherNet/IP gateway 192.168.1.150 + CIP Tag "Motor_Vibration_RMS"',
-    output: 'RMS Vibration value: 4.2 mm/s + Alarm Status: Zone C (Unacceptable)',
-    formula: 'RMS = √(1/N ∑_{i=1}^N x_i²)',
-    group: 'GROUP4',
-    tab: 'INDUSTRIAL AUTOMATION',
-    factory: 'Rockwell',
-    category: 'Industrial Automation',
-  },
-  {
-    id: 'WF70',
-    name: 'Fanuc Robotics Safety Interlock Monitor',
-    prompt: 'DCS (Dual Check Safety) zone and robot axis motor temperature telemetry for automated welding and assembly cell error detection.',
-    input: 'Fanuc Robot R-2000iC + Joint J1-J6 encoder telemetry + Safety gate sensor',
-    output: 'Axis Torque Deviation + Guard Interlock Status + Safety Trip Log',
-    formula: 'Deviation = |Actual_Torque - Nominal_Torque(θ, θ̇, θ̈)|',
-    group: 'GROUP4',
-    tab: 'INDUSTRIAL AUTOMATION',
-    factory: 'Fanuc',
-    category: 'Industrial Automation',
-  },
-  {
-    id: 'WF75',
-    name: 'CAN Bus J1939 Fleet Telemetry',
-    prompt: 'Automotive and heavy equipment Controller Area Network stream decoding J1939 PGNs for engine RPM, oil pressure, and transmission fault codes (DTC).',
-    input: 'CAN Stream 250 kbps + PGN 65262 (Engine Temp) + PGN 65265 (Cruise/Speed)',
-    output: 'Decoded Telemetry (Coolant: 92°C, Oil: 48 psi, Speed: 64 km/h) + SPN/FMI DTCs',
-    formula: 'Physical_Value = Raw_Bits * Resolution + Offset',
-    group: 'GROUP4',
-    tab: 'INDUSTRIAL AUTOMATION',
-    factory: 'CAN Fleet',
-    category: 'Industrial Automation',
-  },
-  {
-    id: 'WF80',
-    name: 'Battery Digital Twin SoC/SoH Predictor',
-    prompt: 'Equivalent circuit model (ECM) and Kalman Filter estimating state-of-charge (SoC) and state-of-health (SoH) for industrial ESS and EV packs.',
-    input: 'Pack Voltage (V), Current (I), Temperature (T) @ 10 Hz sampling',
-    output: 'Estimated SoC (87.4%), SoH (94.2%), Internal Resistance R_0 (14.2 mΩ)',
-    formula: 'x̂_{k|k} = x̂_{k|k-1} + K_k (y_k - H_k x̂_{k|k-1}) [Extended Kalman Filter]',
-    group: 'GROUP4',
-    tab: 'INDUSTRIAL AUTOMATION',
-    factory: 'Battery Twin',
-    category: 'Industrial Automation',
-  },
-  {
-    id: 'WF85',
-    name: 'SAP S/4HANA Maintenance Order Sync',
-    prompt: 'Bi-directional integration creating Plant Maintenance (PM) notifications and work orders in SAP S/4HANA via OData APIs upon verified incident confirmation.',
-    input: 'Validated Incident Ticket C-10284 + Equipment Master #EQ-8841',
-    output: 'SAP Notification #10048219 + Maintenance Order #4002910 + Cost Center Sync',
-    formula: 'POST /sap/opu/odata/sap/API_MAINTNOTIFICATION_SRV → Map_Payload()',
-    group: 'GROUP1',
-    tab: 'INTAKE',
-    factory: 'All',
-    category: 'Enterprise ERP & SCM',
-  },
-  {
-    id: 'WF94',
-    name: 'CFO Boardroom View $1,249,000 Preserved',
-    prompt: 'Executive financial impact calculator aggregating downtime loss avoidance, warranty cost preservation, net ROI 940%, and 18-day breakeven.',
-    input: '5 faults mitigated + avg loss $42,580 + deployment cost $120,000 + uptime delta',
-    output: '$1,249,000 preserved, ROI 940%, Breakeven 18 days, MTBF 3.2d, Board PDF',
-    formula: 'ROI = (Preserved - Cost) / Cost * 100; Breakeven = Cost / (Preserved / Month)',
-    group: 'GROUP5',
-    tab: 'ANALYTICS',
-    factory: 'All',
-    category: 'Financial ROI & Executive',
-  },
-  {
-    id: 'WF100',
-    name: 'Autonomous Judge & Memory Architecture',
-    prompt: 'Section 14 4-phase reasoning pipeline evaluating analytical outputs, executing adversarial checks, maintaining persistent memory, and signing releases.',
-    input: 'Candidate workflow output v_0 + Historical rule memory bank (8 rules)',
-    output: 'Approved Release v_1 + Memory reflection entry + Cryptographic token seal',
-    formula: 'Decision = Judge_Evaluate(Output, Ground_Truth_Rules, Adversarial_Stress)',
-    group: 'GROUP3',
-    tab: 'THE BRAIN',
-    factory: 'All',
-    category: 'The Brain & Judge',
-  },
-  {
-    id: 'WF118',
-    name: 'Self-Test Runner across 125 Suites',
-    prompt: 'Automated verification test runner executing 125 unit, integration, and stress tests ensuring 100% mathematical validity and zero regression.',
-    input: 'Full studio runtime state + Mock data seeds + Stress injection vectors',
-    output: '125/125 Passed (100%) + Execution time 1.62s + Zero failure assertions',
-    formula: 'Suite_Integrity = ∏_{i=1}^{125} Test_Pass_Status_i == 1',
-    group: 'GROUP3',
-    tab: 'QUALITY',
-    factory: 'All',
-    category: 'Verification & CI',
-  },
-];
-
+export const CORE_120_WORKFLOWS: DetailedFunction[] = parseMasterWorkflows(masterDocument) as DetailedFunction[];
 // Generate the full 13,500+ master functions dynamically with exact deterministic properties
 export function generateFull13500Functions(): DetailedFunction[] {
   const list: DetailedFunction[] = [...CORE_120_WORKFLOWS];
@@ -448,11 +136,11 @@ export function generateFull13500Functions(): DetailedFunction[] {
       // Siemens S7-1500 Pack (900 functions)
       const tagNum = n - 120;
       id = `SIE-${String(tagNum).padStart(4, '0')}`;
-      name = `Siemens S7-1500 PLC Read/Write DB${Math.floor(tagNum / 10)}.DBX${tagNum % 8}`;
+      name = `Siemens S7-1500 Read Tag DB${1 + Math.floor((tagNum - 1) / 64)}.DBX${Math.floor((tagNum - 1) % 64 / 8)}.${(tagNum - 1) % 8}`;
       category = 'Siemens Automation Pack';
       factory = 'Siemens S7-1500';
       tab = 'INDUSTRIAL AUTOMATION';
-      group = 'GROUP4';
+      group = 'GROUP1';
     } else if (n <= 1870) {
       // Rockwell Automation Pack (850 functions)
       const tagNum = n - 1020;
@@ -510,7 +198,7 @@ export function generateFull13500Functions(): DetailedFunction[] {
     } else if (n <= 7170) {
       // Salesforce Service Cloud (800 functions)
       const sfId = n - 6370;
-      id = `SF-${String(sfId).padStart(4, '0')}`;
+      id = `SFC-${String(sfId).padStart(4, '0')}`;
       name = `Salesforce Service Cloud Omni-Channel Case Escalation #${sfId}`;
       category = 'Salesforce Service Pack';
       factory = 'All';
@@ -534,7 +222,7 @@ export function generateFull13500Functions(): DetailedFunction[] {
       factory = 'All';
       tab = 'TRIAGE';
       group = 'GROUP2';
-    } else if (n <= 9520) {
+    } else if (n <= 9570) {
       // AI Root-Cause Diagnostic (750 functions)
       const arcId = n - 8770;
       id = `ARC-${String(arcId).padStart(4, '0')}`;
@@ -545,7 +233,7 @@ export function generateFull13500Functions(): DetailedFunction[] {
       group = 'GROUP4';
     } else if (n <= 10320) {
       // AI Customer Draft & Response (800 functions)
-      const aidId = n - 9520;
+      const aidId = n - 9570;
       id = `AID-${String(aidId).padStart(4, '0')}`;
       name = `AI Customer Service Response & Mitigation Dispatcher #${aidId}`;
       category = 'AI Customer Response Pack';
@@ -593,9 +281,9 @@ export function generateFull13500Functions(): DetailedFunction[] {
     list.push({
       id,
       name,
-      prompt: `Deterministic analytical function ${id} executing validated mathematical model within OmniData Studio v6.3 runtime.`,
+      prompt: `Demo catalog contract ${id}; describes an integration scope, not an independently verified executable function.`,
       input: `${factory} parameter vector + Demomod_Lock=TRUE + Timestamp UTC + Trust Hash`,
-      output: `Metric Output [0..1] + Quality Flag Good + Cryptographic Seal #142`,
+      output: `Simulated metric preview; no controller read, certified signature, or verified receipt`,
       formula: `f_${id}(x) = Transform(Filter(x)) → Hash(SHA-256)`,
       group,
       tab,
@@ -732,6 +420,7 @@ export const OmniDataStudio: React.FC<OmniDataStudioProps> = ({
   const [activeTab, setActiveTab] = useState<OmniTab>('HOME');
   const [search, setSearch] = useState<string>('');
   const [factory, setFactory] = useState<string>('Factory 12');
+  const [addinFrequency, setAddinFrequency] = useState<number>(100);
   const [selectedFilter, setSelectedFilter] = useState<string>('Active');
   const [records, setRecords] = useState<ComplaintRecord[]>(INITIAL_RECORDS);
 
@@ -749,6 +438,9 @@ export const OmniDataStudio: React.FC<OmniDataStudioProps> = ({
     | 'causal'
     | 'fmea'
     | 'roi'
+    | 'ledger'
+    | 'plc'
+    | 'audit'
     | 'shap'
     | 'detail'
     | 'new_complaint'
@@ -816,6 +508,8 @@ export const OmniDataStudio: React.FC<OmniDataStudioProps> = ({
   // Keyboard shortcut for Ctrl+K
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { setModalType(null); setSearch(''); }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'e') { e.preventDefault(); setModalType('export'); }
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         const searchInput = document.getElementById('global-13500-search');
@@ -829,6 +523,18 @@ export const OmniDataStudio: React.FC<OmniDataStudioProps> = ({
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [onOpenCommandPalette]);
+
+  const runDriftScan = (inject: boolean) => {
+    const baseline = [20, 20, 20, 20, 20];
+    const current = inject ? [5, 5, 10, 30, 50] : [19, 21, 20, 19, 21];
+    const psi = calculatePSI(baseline, current);
+    setSelectedFunction({ ...CORE_120_WORKFLOWS.find((f) => f.id === 'WF05')!, factory,
+      input: `Synthetic baseline bins: ${baseline.join(', ')}; current: ${current.join(', ')}`,
+      output: `Computed PSI ${psi.toFixed(6)} — ${psi > 0.25 ? 'DRIFT ALERT (>0.25)' : 'Stable'}. Simulation only.`,
+      formula: 'SUM((current_i - baseline_i) * LN(current_i / baseline_i)); normalized with smoothing',
+    });
+    setModalType('detail');
+  };
 
   // Handle Copilot Message Submit
   const handleSendCopilot = async (textToSend?: string) => {
@@ -900,16 +606,7 @@ export const OmniDataStudio: React.FC<OmniDataStudioProps> = ({
 
   // Export handlers
   const handleExportCSV = () => {
-    let csv = 'ID,Name,Prompt,Input,Output,Formula,Group,Tab,Factory,Category\n';
-    const sample = ALL_FUNCTIONS_13500.slice(0, 500);
-    sample.forEach((f) => {
-      csv += `"${f.id}","${f.name.replace(/"/g, '""')}","${f.prompt.replace(/"/g, '""')}","${f.input.replace(
-        /"/g,
-        '""'
-      )}","${f.output.replace(/"/g, '""')}","${f.formula.replace(/"/g, '""')}","${f.group}","${f.tab}","${
-        f.factory
-      }","${f.category || ''}"\n`;
-    });
+    const csv = functionsToCSV(ALL_FUNCTIONS_13500);
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -918,23 +615,13 @@ export const OmniDataStudio: React.FC<OmniDataStudioProps> = ({
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    setCopyExportNotice('Downloaded OMNIDATA_13500_FUNCTIONS.csv (Sample 500 records)!');
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    setCopyExportNotice('Downloaded OMNIDATA_13500_FUNCTIONS.csv (13,500 catalog records; demo contracts)!');
     setTimeout(() => setCopyExportNotice(null), 3000);
   };
 
   const handleExportMarkdown = () => {
-    let md = `# OmniData Studio — 120 Core Workflows Master Specification\n\n`;
-    md += `**Platform**: OmniData Studio v6.3 Enterprise\n`;
-    md += `**Date**: ${new Date().toISOString()}\n`;
-    md += `**Trust Receipt**: #142 (SHA-256 Cryptographically Sealed)\n\n`;
-    CORE_120_WORKFLOWS.forEach((wf) => {
-      md += `### ${wf.id}: ${wf.name}\n`;
-      md += `- **Why/Prompt**: ${wf.prompt}\n`;
-      md += `- **Input**: ${wf.input}\n`;
-      md += `- **Output**: ${wf.output}\n`;
-      md += `- **Formula**: \`${wf.formula}\`\n`;
-      md += `- **Architecture**: ${wf.group} → ${wf.tab} → ${wf.factory}\n\n`;
-    });
+    const md = masterDocument;
     const blob = new Blob([md], { type: 'text/markdown;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -943,6 +630,7 @@ export const OmniDataStudio: React.FC<OmniDataStudioProps> = ({
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
     setCopyExportNotice('Downloaded 120_FEATURES_MASTER.md with complete mathematical specifications!');
     setTimeout(() => setCopyExportNotice(null), 3000);
   };
@@ -951,7 +639,7 @@ export const OmniDataStudio: React.FC<OmniDataStudioProps> = ({
     const ledger = {
       platform: 'OmniData Studio v6.3 Enterprise',
       timestamp: new Date().toISOString(),
-      verifiedBlocks: 142,
+      verifiedBlocks: 0, demoMode: true, suppliedHeadReference: 142,
       compliance: ['FDA 21 CFR Part 11', 'ISO 9001:2015 Clause 8.7', 'AIAG-VDA 1st Edition'],
       headBlockHash: 'a3f5c9e8d2b1704e82b7cf5311e9a284c1f930e1376d49826a57c290141f23bb',
       entries: [
@@ -961,7 +649,7 @@ export const OmniDataStudio: React.FC<OmniDataStudioProps> = ({
           incident: 'Line 7 Hydraulic Leak',
           evidenceHash: 'a3f5c9e8d2b1704e...',
           eSignature: 'Dr. Kehinde Oloyede',
-          status: 'VERIFIED_IMMUTABLE',
+          status: 'UNVERIFIED_DEMO_SAMPLE',
         },
         {
           block: 141,
@@ -969,7 +657,7 @@ export const OmniDataStudio: React.FC<OmniDataStudioProps> = ({
           incident: 'Payment Gateway Webhook Latency',
           evidenceHash: '98bc210da4f1e92...',
           eSignature: 'Quant Lead',
-          status: 'VERIFIED_IMMUTABLE',
+          status: 'UNVERIFIED_DEMO_SAMPLE',
         },
       ],
     };
@@ -981,6 +669,7 @@ export const OmniDataStudio: React.FC<OmniDataStudioProps> = ({
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
     setCopyExportNotice('Downloaded trust_receipts_ledger_#142.json!');
     setTimeout(() => setCopyExportNotice(null), 3000);
   };
@@ -1028,7 +717,7 @@ export const OmniDataStudio: React.FC<OmniDataStudioProps> = ({
         <div className="flex items-center gap-2">
           {onSwitchStudioMode && (
             <button
-              onClick={() => onSwitchStudioMode('workbench')}
+              onClick={() => setActiveTab('THE BRAIN')}
               className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-full border border-teal-200 bg-teal-50 text-teal-800 hover:bg-teal-100 transition-colors font-medium cursor-pointer"
               title="Toggle Deep Engineering Workbench"
             >
@@ -1064,7 +753,7 @@ export const OmniDataStudio: React.FC<OmniDataStudioProps> = ({
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search 13,500 functions (Ctrl+K)..."
-              className="w-[240px] sm:w-[280px] border border-[#E5E7EB] rounded-full pl-8 pr-3 py-1 text-xs bg-[#F9FAFB] text-[#111827] placeholder:text-[#9CA3AF] focus:outline-none focus:border-[#14B8A6] focus:bg-white"
+              className="w-[240px] sm:w-[320px] border border-[#E5E7EB] rounded-full pl-8 pr-3 py-1 text-xs bg-[#F9FAFB] text-[#111827] placeholder:text-[#9CA3AF] focus:outline-none focus:border-[#14B8A6] focus:bg-white"
             />
             {search.trim() && (
               <button
@@ -1086,7 +775,8 @@ export const OmniDataStudio: React.FC<OmniDataStudioProps> = ({
                   <div
                     key={f.id}
                     onClick={() => {
-                      setSelectedFunction(f);
+                      setActiveTab(f.tab);
+                      setSelectedFunction({ ...f, factory });
                       setModalType('detail');
                       setSearch('');
                     }}
@@ -1183,7 +873,7 @@ export const OmniDataStudio: React.FC<OmniDataStudioProps> = ({
             <button
               onClick={() => {
                 setActiveTab('TRIAGE');
-                alert('Opened Assign Module. 5 engineers available for auto-assignment.');
+                setCopyExportNotice('Opened Assign Module. 5 engineers available for auto-assignment.');
               }}
               className="border border-[#E5E7EB] bg-white hover:bg-gray-50 text-[#374151] px-2 py-1 rounded text-[11px] flex items-center gap-1 cursor-pointer"
             >
@@ -1192,7 +882,7 @@ export const OmniDataStudio: React.FC<OmniDataStudioProps> = ({
             <button
               onClick={() => {
                 setActiveTab('TRIAGE');
-                alert('Auto-Routing Engine evaluated: 3 tickets rerouted to Reliability Squad.');
+                setCopyExportNotice('Auto-Routing Engine evaluated: 3 tickets rerouted to Reliability Squad.');
               }}
               className="border border-[#E5E7EB] bg-white hover:bg-gray-50 text-[#374151] px-2 py-1 rounded text-[11px] flex items-center gap-1 cursor-pointer"
             >
@@ -1202,7 +892,7 @@ export const OmniDataStudio: React.FC<OmniDataStudioProps> = ({
             <button
               onClick={() => {
                 setActiveTab('TRIAGE');
-                alert('Escalated ticket C-10284 to Severity Level 1.');
+                setCopyExportNotice('Escalated ticket C-10284 to Severity Level 1.');
               }}
               className="border border-[#E5E7EB] bg-white hover:bg-gray-50 text-[#374151] px-2 py-1 rounded text-[11px] flex items-center gap-1 cursor-pointer"
             >
@@ -1573,7 +1263,7 @@ export const OmniDataStudio: React.FC<OmniDataStudioProps> = ({
                     Yes
                   </button>
                   <button
-                    onClick={() => alert('Suggestion dismissed. Incident remains monitored.')}
+                    onClick={() => setCopyExportNotice('Suggestion dismissed. Incident remains monitored.')}
                     className="bg-white hover:bg-amber-50 border border-[#D97706]/40 text-[#92400E] font-medium px-3 py-1 rounded text-xs transition cursor-pointer"
                   >
                     No
@@ -1640,14 +1330,14 @@ export const OmniDataStudio: React.FC<OmniDataStudioProps> = ({
                   </div>
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <button
-                      onClick={() => alert(`Applied Filter: ${selectedFilter}`)}
+                      onClick={() => setCopyExportNotice(`Applied Filter: ${selectedFilter}`)}
                       className="border border-[#E5E7EB] bg-white hover:bg-gray-50 text-[#374151] px-2.5 py-1 rounded text-xs flex items-center gap-1 cursor-pointer"
                     >
                       <Filter className="w-3 h-3 text-gray-500" />
                       <span>Filter</span>
                     </button>
                     <button
-                      onClick={() => alert('Customized columns view')}
+                      onClick={() => setCopyExportNotice('Customized columns view')}
                       className="border border-[#E5E7EB] bg-white hover:bg-gray-50 text-[#374151] px-2.5 py-1 rounded text-xs flex items-center gap-1 cursor-pointer"
                     >
                       <Columns className="w-3 h-3 text-gray-500" />
@@ -2016,7 +1706,7 @@ export const OmniDataStudio: React.FC<OmniDataStudioProps> = ({
                     Inspect Full FMEA Action Plan
                   </button>
                   <button
-                    onClick={() => alert('CAPA Ticket #CAPA-8941 dispatched to maintenance team.')}
+                    onClick={() => setModalType('automate')}
                     className="border border-[#E5E7EB] bg-white hover:bg-gray-50 text-gray-700 px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer"
                   >
                     Dispatch CAPA Ticket
@@ -2035,10 +1725,10 @@ export const OmniDataStudio: React.FC<OmniDataStudioProps> = ({
                     ANALYTICS TAB — S2 BRAIN + S4 ROI ENGINE ($1,249,000 Preserved)
                   </h2>
                   <button
-                    onClick={handleExportCSV}
+                    onClick={() => setModalType('export')}
                     className="px-3 py-1 bg-[#14B8A6] hover:bg-[#0D9488] text-white rounded text-xs font-semibold cursor-pointer"
                   >
-                    Certified PDF/Excel
+                    CFO Export Options
                   </button>
                 </div>
                 <p className="text-xs text-[#6B7280] mt-0.5">
@@ -2069,15 +1759,14 @@ export const OmniDataStudio: React.FC<OmniDataStudioProps> = ({
                     <div className="flex gap-1.5 pt-1">
                       <button
                         onClick={() => {
-                          setSelectedFunction(CORE_120_WORKFLOWS.find((f) => f.id === 'WF05') || CORE_120_WORKFLOWS[0]);
-                          setModalType('detail');
+                          runDriftScan(false);
                         }}
                         className="bg-[#14B8A6] hover:bg-[#0D9488] text-white px-2.5 py-1 rounded text-[10px] font-semibold cursor-pointer"
                       >
                         Scan Telemetry
                       </button>
                       <button
-                        onClick={() => alert('Simulating covariate drift injection: PSI shifts from 0.04 to 0.31!')}
+                        onClick={() => runDriftScan(true)}
                         className="bg-[#1F2937] border border-[#374151] hover:bg-gray-800 text-gray-200 px-2.5 py-1 rounded text-[10px] cursor-pointer"
                       >
                         Inject Drift
@@ -2118,12 +1807,12 @@ export const OmniDataStudio: React.FC<OmniDataStudioProps> = ({
 
               <div className="bg-white border border-[#E5E7EB] rounded-xl p-3.5 shadow-2xs space-y-3">
                 <div className="flex justify-between items-center">
-                  <span className="font-bold text-xs text-gray-900">Verified Evidence Blocks (Ledger #140-#142)</span>
+                  <span className="font-bold text-xs text-gray-900">Demo Evidence References (not cryptographically verified)</span>
                   <button
-                    onClick={() => alert('Cryptographic verification complete: All 142 block SHA-256 hashes recomputed and matched perfectly!')}
+                    onClick={() => setModalType('ledger')}
                     className="text-[10px] text-teal-700 bg-teal-50 border border-teal-200 px-2 py-1 rounded font-semibold hover:bg-teal-100 cursor-pointer"
                   >
-                    Re-Verify All Hashes
+                    Feature Registry / Trust Ledger
                   </button>
                 </div>
 
@@ -2132,7 +1821,7 @@ export const OmniDataStudio: React.FC<OmniDataStudioProps> = ({
                     <div className="flex justify-between items-center">
                       <span className="font-bold text-teal-800 font-mono">Block #142 • C-10284</span>
                       <span className="bg-[#ECFDF5] text-[#10B981] px-2 py-0.5 rounded text-[10px] font-bold">
-                        VERIFIED SEAL
+                        DEMO REFERENCE
                       </span>
                     </div>
                     <div className="text-[10px] text-gray-600 font-mono break-all">
@@ -2147,7 +1836,7 @@ export const OmniDataStudio: React.FC<OmniDataStudioProps> = ({
                     <div className="flex justify-between items-center">
                       <span className="font-bold text-teal-800 font-mono">Block #141 • C-10285</span>
                       <span className="bg-[#ECFDF5] text-[#10B981] px-2 py-0.5 rounded text-[10px] font-bold">
-                        VERIFIED SEAL
+                        DEMO REFERENCE
                       </span>
                     </div>
                     <div className="text-[10px] text-gray-600 font-mono break-all">
@@ -2175,10 +1864,11 @@ export const OmniDataStudio: React.FC<OmniDataStudioProps> = ({
                   </span>
                 </div>
                 <p className="text-xs text-[#6B7280] mt-0.5">
-                  Real-time telemetry from Siemens S7-1500, Rockwell CIP, Fanuc DCS, CAN Bus, and Battery Twin.
+                  Simulated telemetry for Siemens S7-1500, Rockwell CIP, Fanuc DCS, CAN Bus, and Battery Twin.
                 </p>
               </div>
 
+              <div className="flex gap-2"><button className="bg-[#14B8A6] text-white px-3 py-2 rounded" onClick={() => setModalType('plc')}>PLC Tags — 1,240</button></div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div className="bg-[#0B1220] text-white rounded-xl p-3.5 border border-[#1F2937] space-y-2">
                   <div className="flex justify-between items-center text-xs font-bold text-[#14B8A6]">
@@ -2297,7 +1987,7 @@ export const OmniDataStudio: React.FC<OmniDataStudioProps> = ({
                   <div className="font-bold text-xs text-gray-900">12-Column Layout (2-7-3)</div>
                   <div className="text-[10px] text-gray-500">Standard operational cockpit layout.</div>
                   <button
-                    onClick={() => alert('Layout set to Default (2-7-3)')}
+                    onClick={() => setModalType('settings')}
                     className="w-full bg-[#14B8A6] text-white px-2.5 py-1 rounded text-xs font-semibold cursor-pointer"
                   >
                     Set Active
@@ -2308,7 +1998,7 @@ export const OmniDataStudio: React.FC<OmniDataStudioProps> = ({
                   <div className="font-bold text-xs text-gray-900">Sunlight High-Contrast Mode</div>
                   <div className="text-[10px] text-gray-500">Pure white #FFFFFF matte finish for industrial glare.</div>
                   <button
-                    onClick={() => alert('Sunlight mode locked with 18:1 contrast.')}
+                    onClick={() => setModalType('settings')}
                     className="w-full border border-gray-300 text-gray-800 px-2.5 py-1 rounded text-xs font-semibold cursor-pointer"
                   >
                     Locked Active
@@ -2319,10 +2009,10 @@ export const OmniDataStudio: React.FC<OmniDataStudioProps> = ({
                   <div className="font-bold text-xs text-gray-900">Compact Dense Mode</div>
                   <div className="text-[10px] text-gray-500">Increases table density by 30% for high-throughput teams.</div>
                   <button
-                    onClick={() => alert('Density toggled!')}
+                    onClick={() => setActiveTab('THE BRAIN')}
                     className="w-full border border-gray-300 text-gray-800 px-2.5 py-1 rounded text-xs font-semibold cursor-pointer"
                   >
-                    Toggle Density
+                    Switch to Deep Workbench
                   </button>
                 </div>
               </div>
@@ -2408,25 +2098,25 @@ export const OmniDataStudio: React.FC<OmniDataStudioProps> = ({
                     <div className="text-xs font-bold text-gray-200">WORKFLOW OUTPUTS UNDER REVIEW — Max 3 Rounds</div>
                     <div className="flex flex-wrap gap-1.5">
                       <button
-                        onClick={() => alert('Auditing WF02 Quality Contract')}
+                        onClick={() => setModalType('audit')}
                         className="bg-[#1F2937] border border-gray-700 px-2 py-1 rounded text-[10px] hover:border-teal-400 cursor-pointer"
                       >
                         Audit WF02 Quality
                       </button>
                       <button
-                        onClick={() => alert('Auditing WF03 Cleaning Pipeline')}
+                        onClick={() => setModalType('audit')}
                         className="bg-[#1F2937] border border-gray-700 px-2 py-1 rounded text-[10px] hover:border-teal-400 cursor-pointer"
                       >
                         Audit WF03 Cleaning
                       </button>
                       <button
-                        onClick={() => alert('Auditing WF05 Leakage Isolation')}
+                        onClick={() => setModalType('audit')}
                         className="bg-[#1F2937] border border-gray-700 px-2 py-1 rounded text-[10px] hover:border-teal-400 cursor-pointer"
                       >
                         Audit WF05 Leakage
                       </button>
                       <button
-                        onClick={() => alert('Auditing WF07 ML Benchmark')}
+                        onClick={() => setModalType('audit')}
                         className="bg-[#1F2937] border border-gray-700 px-2 py-1 rounded text-[10px] hover:border-teal-400 cursor-pointer"
                       >
                         Audit WF07 ML
@@ -2440,7 +2130,7 @@ export const OmniDataStudio: React.FC<OmniDataStudioProps> = ({
                       </div>
                       <div className="text-[10px] text-[#9CA3AF]">1 versions (v0→v0) • 2/3 checks passed (67%)</div>
                       <button
-                        onClick={() => alert('Judge Approved! Contract signed and released.')}
+                        onClick={() => setModalType('audit')}
                         className="mt-1.5 bg-[#10B981]/20 border border-[#10B981] text-[#10B981] px-3 py-1 rounded text-[10px] font-bold hover:bg-[#10B981]/30 cursor-pointer"
                       >
                         ✓ APPROVE (RELEASED)
@@ -2465,7 +2155,7 @@ export const OmniDataStudio: React.FC<OmniDataStudioProps> = ({
                       </span>
                       {onOpenBrain && (
                         <button
-                          onClick={onOpenBrain}
+                          onClick={() => setModalType('audit')}
                           className="bg-teal-600 hover:bg-teal-500 text-white px-2.5 py-1 rounded text-[10px] font-bold cursor-pointer"
                         >
                           Open Full Judge Modal
@@ -2680,6 +2370,8 @@ export const OmniDataStudio: React.FC<OmniDataStudioProps> = ({
         </aside>
       </div>
 
+      <footer className="sticky bottom-0 z-20 bg-white border-t border-[#E5E7EB] p-2 text-[10px] text-gray-600">Demo • 13,500 catalog contracts • Good cap locked | Light mode v6.3 • TAB: {activeTab} • Ctrl+K • {factory} • DEMO_MODE=true</footer>
+      <button aria-label="New complaint" onClick={() => setModalType('new_complaint')} className="fixed bottom-12 right-4 z-30 w-10 h-10 bg-[#14B8A6] text-white rounded-full text-xl shadow-lg">+</button>
       {/* 5. Modals (Every Feature Fully Wired) */}
       {modalType && (
         <div
@@ -2687,6 +2379,7 @@ export const OmniDataStudio: React.FC<OmniDataStudioProps> = ({
           onClick={() => setModalType(null)}
         >
           <div
+            role="dialog" aria-modal="true" aria-label="ComplaintHub action" tabIndex={-1}
             className="bg-white rounded-2xl border border-[#E5E7EB] p-5 w-full max-w-[720px] max-h-[85vh] overflow-y-auto text-xs shadow-2xl space-y-4"
             onClick={(e) => e.stopPropagation()}
           >
@@ -2704,7 +2397,11 @@ export const OmniDataStudio: React.FC<OmniDataStudioProps> = ({
                   {modalType === 'fishbone' && 'ARC-0001: Ishikawa 5-Whys Fishbone Decomposition'}
                   {modalType === 'causal' && 'WF10: Judea Pearl Structural Causal SCM & Do-Calculus'}
                   {modalType === 'fmea' && 'WF29: AIAG-VDA 1st Edition FMEA Risk Mitigation Sheet'}
-                  {modalType === 'shap' && 'C-10284: SHAP Explainer & Causal Attribution'}
+                  {modalType === 'shap' && 'C-10284: Explanatory hypotheses'}
+                  {modalType === 'roi' && 'WF94: CFO Scenario'}
+                  {modalType === 'plc' && 'PLC Tag Browser — 1,240 simulated tags'}
+                  {modalType === 'ledger' && 'Trust Ledger — Demo Evidence'}
+                  {modalType === 'audit' && 'Judge — Local Contract Review'}
                   {modalType === 'detail' && `${selectedFunction.id}: ${selectedFunction.name}`}
                   {modalType === 'new_complaint' && '+ New Incident Intake Ticket'}
                   {modalType === 'addins_configure' && `Configure Add-in: ${selectedAddin}`}
@@ -2718,78 +2415,14 @@ export const OmniDataStudio: React.FC<OmniDataStudioProps> = ({
               </button>
             </div>
 
+            <ComplaintActionPanel key={modalType} type={modalType} records={records} />
+            {modalType === 'plc' && <PLCTagBrowser onSelect={(id) => { const f = ALL_FUNCTIONS_13500.find((item) => item.id === id); if (f) { setSelectedFunction({ ...f, factory }); setModalType('detail'); } }} />}
             {/* FORMULA MODAL */}
-            {modalType === 'formula' && (
-              <div className="space-y-3">
-                <div className="text-gray-600">
-                  Every mathematical formula in OmniData Studio is fully wired with Input, Output, and underlying equation:
-                </div>
-                {[
-                  {
-                    f: '=LOSS_BY_MODE()',
-                    why: 'Calculates $42,580 loss grouped by failure mode for CFO boardroom analysis.',
-                    input: '34 complaint records with financial loss + failure mode vectors',
-                    output: 'Aggregated loss table + Pareto distribution metrics',
-                    formula: 'SUM(loss) GROUP BY mode',
-                  },
-                  {
-                    f: '=MTBF()',
-                    why: 'Mean Time Between Failures 3.2 days for industrial reliability engineering.',
-                    input: 'Operating hours (240h) / Failures count (75 events)',
-                    output: 'MTBF = 3.2 days (with upper & lower 95% CI)',
-                    formula: 'MTBF = Total_Operating_Time / Total_Failures',
-                  },
-                  {
-                    f: '=ROI()',
-                    why: '$1,249,000 preserved at 940% ROI and 18-day breakeven.',
-                    input: 'Preserved loss ($1,249,000), Deployment cost ($120,000)',
-                    output: 'ROI = 940%, Payback = 18 days',
-                    formula: 'ROI = ((Preserved - Cost) / Cost) * 100',
-                  },
-                  {
-                    f: '=PSI()',
-                    why: 'Drift Watchtower continuous covariate monitoring for payment_latency_ms.',
-                    input: 'Baseline 30-day distribution vs current streaming batch',
-                    output: 'PSI = 0.32 (ALERT: exceeds 0.25 critical retrain boundary)',
-                    formula: 'PSI = ∑ (Actual_i - Baseline_i) * ln(Actual_i / Baseline_i)',
-                  },
-                  {
-                    f: '=RPN()',
-                    why: 'AIAG-VDA FMEA Risk Priority Number for hydraulic leak containment.',
-                    input: 'Severity (8) * Occurrence (6) * Detection (5)',
-                    output: 'RPN = 240 (Action Priority HIGH)',
-                    formula: 'RPN = S * O * D',
-                  },
-                  {
-                    f: '=TRUST_HASH()',
-                    why: 'Cryptographic SHA-256 seal for immutable FDA/ISO compliance.',
-                    input: 'sensor_log + PLC tag snapshot + operator JD + UTC timestamp',
-                    output: 'SHA256: a3f5c9e8d2b1... (Block #142 Sealed)',
-                    formula: 'SHA-256(evidence || timestamp || parent_hash)',
-                  },
-                ].map((item) => (
-                  <div key={item.f} className="p-3 bg-[#F9FAFB] rounded-xl border border-gray-200 space-y-1">
-                    <div className="font-mono font-bold text-[#14B8A6]">{item.f}</div>
-                    <div className="text-gray-700">
-                      <strong>Why:</strong> {item.why}
-                    </div>
-                    <div className="text-gray-600 text-[11px]">
-                      <strong>Input:</strong> {item.input}
-                    </div>
-                    <div className="text-gray-600 text-[11px]">
-                      <strong>Output:</strong> {item.output}
-                    </div>
-                    <div className="text-[10px] font-mono bg-white p-1 rounded border border-gray-200 text-teal-800">
-                      Formula: {item.formula}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+            {modalType === 'formula' && <FormulaBrowser />}
 
             {/* EXPORT MODAL */}
             {modalType === 'export' && (
-              <div className="space-y-3">
+              <div className="space-y-3"><p className="p-2 bg-amber-50 rounded">CSV, master Markdown, and demo JSON are available. Certified PDF/Excel requires validated evidence and a reporting/signature service; not connected.</p><button className="text-teal-700 underline" onClick={() => setModalType('roi')}>Inspect CFO scenario Input / Output / Formula</button>
                 <div className="text-gray-600">Select export archive or regulatory compliance manifest:</div>
                 <div className="grid gap-2">
                   <button
@@ -2824,10 +2457,10 @@ export const OmniDataStudio: React.FC<OmniDataStudioProps> = ({
                   >
                     <div className="font-bold text-gray-900 flex items-center justify-between">
                       <span>trust_receipts_ledger_#142.json</span>
-                      <span className="text-[10px] text-teal-600 font-bold">142 BLOCKS</span>
+                      <span className="text-[10px] text-teal-600 font-bold">2 DEMO ENTRIES</span>
                     </div>
                     <div className="text-gray-500 text-[11px]">
-                      Cryptographic ledger verification with Merkle root hash and operator digital signatures.
+                      Two supplied demo entries only; not a verified 142-block chain or authenticated signatures.
                     </div>
                   </button>
                 </div>
@@ -2841,18 +2474,18 @@ export const OmniDataStudio: React.FC<OmniDataStudioProps> = ({
                   <div className="font-bold text-amber-900">Safety Interlock: DEMO_MODE Active</div>
                   <div className="text-[11px] text-amber-800">
                     The platform is operating in verified advisory mode. Physical actuator writes, valve actuations, and
-                    PLC memory modifications are locked. Telemetry is polled read-only.
+                    PLC memory modifications are locked. All telemetry is synthetic; no controller is connected.
                   </div>
                 </div>
 
                 <div className="space-y-2">
                   <div className="font-bold text-gray-900">Ledger Configuration</div>
                   <div className="p-2.5 bg-gray-50 border border-gray-200 rounded-lg text-[11px] space-y-1">
-                    <div>Current Block Height: #142</div>
+                    <div>Ledger Path: /ledger/trust_receipts.json (configuration only; no server persistence)</div>
                     <div className="font-mono text-[10px] text-gray-600">
                       Head Hash: a3f5c9e8d2b1704e82b7cf5311e9a284c1f930e1376d49826a57c290141f23bb
                     </div>
-                    <div>Compliance Standard: FDA 21 CFR Part 11 & ISO 9001:2015 Clause 8.7</div>
+                    <div>120/120 workflow specification contracts loaded — not an execution or compliance audit</div>
                   </div>
                 </div>
               </div>
@@ -2899,86 +2532,39 @@ export const OmniDataStudio: React.FC<OmniDataStudioProps> = ({
 
             {/* NEW COMPLAINT MODAL */}
             {modalType === 'new_complaint' && (
-              <div className="space-y-3">
-                <div>
-                  <label className="font-bold text-gray-700 block mb-1">Incident Title / Summary</label>
-                  <input
-                    type="text"
-                    placeholder="e.g., Line 7 Hydraulic Pump Micro-Vibration"
-                    className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-teal-500"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="font-bold text-gray-700 block mb-1">Source Channel</label>
-                    <select className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-xs bg-white">
-                      <option>IoT PLC Tag</option>
-                      <option>REST Webhook API</option>
-                      <option>Email IMAP</option>
-                      <option>WhatsApp</option>
-                      <option>QR Scanner</option>
-                      <option>Voice Audio</option>
-                      <option>SAP S/4HANA</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="font-bold text-gray-700 block mb-1">Factory Location</label>
-                    <select className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-xs bg-white">
-                      <option>Factory 12</option>
-                      <option>Siemens S7-1500</option>
-                      <option>Rockwell</option>
-                      <option>Fanuc</option>
-                      <option>CAN Fleet</option>
-                      <option>Battery Twin</option>
-                    </select>
-                  </div>
-                </div>
-                <button
-                  onClick={() => {
-                    alert('Created Complaint C-10291 with SHA-256 seal #143!');
-                    setModalType(null);
-                  }}
-                  className="w-full bg-[#14B8A6] hover:bg-[#0D9488] text-white py-2 rounded-lg font-bold text-xs cursor-pointer"
-                >
-                  Create & Seal Incident
-                </button>
-              </div>
+              <NewComplaintForm
+                factory={factory}
+                onCreate={(title, channel, location) => {
+                  const newRec: ComplaintRecord = {
+                    id: `C-${Math.floor(10000 + Math.random() * 90000)}`,
+                    complaint: title,
+                    sourceChannel: channel,
+                    status: 'Active',
+                    owner: 'Triage Squad Lead',
+                    loss: '$0',
+                    sla: 'Pending',
+                    trustReceipt: 'Awaiting sign-off',
+                    date: new Date().toISOString().split('T')[0],
+                    factory: location,
+                  };
+                  setRecords((prev) => [newRec, ...prev]);
+                  setCopyExportNotice(`Created demo complaint ${newRec.id} (session only; awaiting sign-off).`);
+                  setModalType(null);
+                }}
+              />
             )}
 
             {/* ADDINS CONFIGURE MODAL */}
             {modalType === 'addins_configure' && (
-              <div className="space-y-3">
-                <div className="font-bold text-gray-900">{selectedAddin} Configuration</div>
-                <div className="space-y-2 text-xs">
-                  <div>
-                    <label className="font-bold text-gray-700 block mb-1">Polling Frequency (ms)</label>
-                    <input
-                      type="number"
-                      defaultValue={100}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-xs"
-                    />
-                  </div>
-                  <div>
-                    <label className="font-bold text-gray-700 block mb-1">Cryptographic Trust Digest</label>
-                    <div className="font-mono text-[10px] bg-gray-50 p-2 rounded border border-gray-200">
-                      SHA-256: 89ab32f10d4...
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 pt-2">
-                    <input type="checkbox" defaultChecked className="rounded text-teal-600" />
-                    <span className="text-gray-700">Enforce read-only advisory interlock (DEMO_MODE)</span>
-                  </div>
-                </div>
-                <button
-                  onClick={() => {
-                    alert(`Updated configuration for ${selectedAddin}!`);
-                    setModalType(null);
-                  }}
-                  className="w-full bg-[#14B8A6] text-white py-2 rounded-lg font-bold text-xs cursor-pointer"
-                >
-                  Save Configuration
-                </button>
-              </div>
+              <AddinConfigForm
+                name={selectedAddin}
+                value={addinFrequency}
+                onSave={(frequency) => {
+                  setAddinFrequency(frequency);
+                  setCopyExportNotice(`Saved polling interval ${frequency} ms for ${selectedAddin} (session only).`);
+                  setModalType(null);
+                }}
+              />
             )}
 
             <div className="flex justify-end pt-2 border-t border-gray-200">
