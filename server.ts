@@ -7,7 +7,16 @@ import { GoogleGenAI } from '@google/genai';
 dotenv.config();
 
 const app = express();
-const PORT = Number(process.env.PORT) || 3000;
+function resolvePort(): number {
+  const argIndex = process.argv.indexOf('--port');
+  if (argIndex !== -1 && process.argv[argIndex + 1]) {
+    const parsed = Number(process.argv[argIndex + 1]);
+    if (!Number.isNaN(parsed)) return parsed;
+  }
+  return Number(process.env.PORT) || 5175;
+}
+
+const PORT = resolvePort();
 
 app.use(express.json({ limit: '15mb' }));
 
@@ -287,6 +296,17 @@ async function start() {
 
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`[OmniData Studio] Server running on http://0.0.0.0:${PORT}`);
+  }).on('error', (err: NodeJS.ErrnoException) => {
+    if (err.code === 'EADDRINUSE') {
+      console.error(`[OmniData Studio] Port ${PORT} is already in use. Trying next port...`);
+      setTimeout(() => {
+        app.listen(PORT + 1, '0.0.0.0', () => {
+          console.log(`[OmniData Studio] Server running on http://0.0.0.0:${PORT + 1}`);
+        });
+      }, 100);
+    } else {
+      throw err;
+    }
   });
 }
 

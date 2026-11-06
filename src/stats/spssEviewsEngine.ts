@@ -869,7 +869,552 @@ export function runForecastEvaluation(actual: number[], forecast: number[]): For
     covarianceProportion: parseFloat(Math.min(1.0, covProp).toFixed(4)),
   };
 }
+// ====================================================================
+// 7. SPSS-STYLE DESCRIPTIVE STATISTICS - FREQUENCIES (Section 16.3)
+// ====================================================================
+export interface FrequenciesResult {
+  variable: string;
+  validN: number;
+  missingN: number;
+  mean: number;
+  stdDev: number;
+  variance: number;
+  skewness: number;
+  kurtosis: number;
+  minimum: number;
+  maximum: number;
+  percentiles: { p: number; value: number }[];
+  frequencyTable: { value: number; frequency: number; percent: number; validPercent: number; cumulativePercent: number }[];
+  histogramData: { bin: number; count: number; density: number }[];
+}
 
+export function runFrequencies(
+  data: number[],
+  variableName = 'Variable',
+  percentiles = [5, 10, 25, 50, 75, 90, 95]
+): FrequenciesResult {
+  // Filter valid values
+  const valid = data.filter((v) => v !== null && v !== undefined && !isNaN(v));
+  const missingN = data.length - valid.length;
+  const n = valid.length;
+
+  if (n === 0) {
+    return {
+      variable: variableName,
+      validN: 0,
+      missingN,
+      mean: 0,
+      stdDev: 0,
+      variance: 0,
+      skewness: 0,
+      kurtosis: 0,
+      minimum: 0,
+      maximum: 0,
+      percentiles: [],
+      frequencyTable: [],
+      histogramData: [],
+    };
+  }
+
+  // Sort for percentiles
+  const sorted = [...valid].sort((a, b) => a - b);
+
+  // Basic statistics
+  const sum = sorted.reduce((a, b) => a + b, 0);
+  const mean = sum / n;
+  
+  const squaredDiffs = sorted.map((v) => (v - mean) ** 2);
+  const variance = squaredDiffs.reduce((a, b) => a + b, 0) / (n - 1);
+  const stdDev = Math.sqrt(variance);
+
+  // Skewness and Kurtosis (using sample formulas)
+  const cubedDiffs = sorted.map((v) => ((v - mean) / stdDev) ** 3);
+  const fourthDiffs = sorted.map((v) => ((v - mean) / stdDev) ** 4);
+  const skewness = (n / ((n - 1) * (n - 2))) * cubedDiffs.reduce((a, b) => a + b, 0);
+  const kurtosis = ((n * (n + 1)) / ((n - 1) * (n - 2) * (n - 3))) * 
+    fourthDiffs.reduce((a, b) => a + b, 0) - (3 * (n - 1) ** 2) / ((n - 2) * (n - 3));
+
+  const minimum = sorted[0];
+  const maximum = sorted[n - 1];
+
+  // Percentiles
+  const percentileValues = percentiles.map((p) => {
+    const index = (p / 100) * (n - 1);
+    const lower = Math.floor(index);
+    const upper = Math.ceil(index);
+    const weight = index - lower;
+    const value = lower === upper ? sorted[lower] : sorted[lower] * (1 - weight) + sorted[upper] * weight;
+    return { p, value: parseFloat(value.toFixed(4)) };
+  });
+
+  // Frequency Table (SPSS-style)
+  // Group identical values
+  const valueCounts: Map<number, number> = new Map();
+  for (const v of sorted) {
+    valueCounts.set(v, (valueCounts.get(v) || 0) + 1);
+  }
+
+  let cumulativeFreq = 0;
+  const frequencyTable = Array.from(valueCounts.entries())
+    .sort((a, b) => a[0] - b[0])
+    .map(([value, frequency]) => {
+      const percent = (frequency / n) * 100;
+      const validPercent = (frequency / n) * 100; // No missing in valid
+      cumulativeFreq += frequency;
+      const cumulativePercent = (cumulativeFreq / n) * 100;
+      return {
+        value,
+        frequency,
+        percent: parseFloat(percent.toFixed(2)),
+        validPercent: parseFloat(validPercent.toFixed(2)),
+        cumulativePercent: parseFloat(cumulativePercent.toFixed(2)),
+      };
+    });
+
+  // Histogram Data (Sturges' rule for bins)
+  const numBins = Math.ceil(Math.log2(n) + 1);
+  const range = maximum - minimum;
+  const binWidth = range / numBins || 1;
+  
+  const bins: { bin: number; count: number; density: number }[] = [];
+  for (let i = 0; i < numBins; i++) {
+    const binStart = minimum + i * binWidth;
+    const binEnd = binStart + binWidth;
+    const count = sorted.filter((v) => v >= binStart && (i === numBins - 1 ? v <= binEnd : v < binEnd)).length;
+    const density = count / (n * binWidth);
+    bins.push({
+      bin: parseFloat(binStart.toFixed(4)),
+      count,
+      density: parseFloat(density.toFixed(4)),
+    });
+  }
+
+  return {
+    variable: variableName,
+    validN: n,
+    missingN,
+    mean: parseFloat(mean.toFixed(4)),
+    stdDev: parseFloat(stdDev.toFixed(4)),
+    variance: parseFloat(variance.toFixed(4)),
+    skewness: parseFloat(skewness.toFixed(4)),
+    kurtosis: parseFloat(kurtosis.toFixed(4)),
+    minimum: parseFloat(minimum.toFixed(4)),
+    maximum: parseFloat(maximum.toFixed(4)),
+    percentiles: percentileValues,
+    frequencyTable,
+    histogramData: bins,
+  };
+}
+// ====================================================================
+// 8. EViews-STYLE UNIT ROOT TEST - ADF (Augmented Dickey-Fuller)
+// ====================================================================
+export interface ADFTestResult {
+  adfStatistic: number;
+  pValue: number;
+  criticalValues: { '1%': number; '5%': number; '10%': number };
+  lagLength: number;
+  obs: number;
+  trend: string;
+  maxLags: string | number;
+  conclusion: 'Stationary' | 'Non-Stationary';
+  regressionCoefficients: { variable: string; coefficient: number; stdError: number; tStat: number; pValue: number }[];
+  diagnostics: {
+    rSquared: number;
+    adjRSquared: number;
+    fStatistic: number;
+    fProb: number;
+    durbinWatson: number;
+    aic: number;
+    sc: number;
+    logLikelihood: number;
+    correlogram: number[];
+  };
+}
+
+export function runADFTest(
+  data: number[],
+  options: { trend?: 'c' | 'ct' | 'ctt' | 'nc'; maxLags?: number | 'auto' } = {}
+): ADFTestResult {
+  const { trend = 'ct', maxLags: maxLagsOption = 'auto' } = options;
+  const n = data.length;
+  
+  if (n < 10) {
+    throw new Error('Insufficient observations for ADF test (minimum 10)');
+  }
+
+  // Create lagged differences for the ADF regression
+  // Δy_t = α + β*t + γ*y_{t-1} + Σ δ_i*Δy_{t-i} + ε_t
+  
+  const maxPossibleLags = Math.min(12, Math.floor(n / 3));
+  let optimalLags = 1;
+  
+  if (maxLagsOption === 'auto') {
+    // Use SIC (Schwarz Information Criterion) to select optimal lag length
+    let bestSIC = Infinity;
+    for (let k = 0; k <= maxPossibleLags; k++) {
+      const sic = calculateADFSIC(data, k, trend);
+      if (sic < bestSIC) {
+        bestSIC = sic;
+        optimalLags = k;
+      }
+    }
+  } else {
+    optimalLags = Math.min(maxLagsOption, maxPossibleLags);
+  }
+
+  // Run the ADF regression with optimal lags
+  const regressionResult = runADFRegression(data, optimalLags, trend);
+  
+  // Calculate critical values (MacKinnon approximate)
+  const criticalValues = getADFCriticalValues(n, trend);
+  
+  const adfStatistic = regressionResult.gammaTStat;
+  const pValue = calculateADFPValue(adfStatistic, n, trend);
+  const conclusion = adfStatistic < criticalValues['5%'] ? 'Stationary' : 'Non-Stationary';
+
+  // Calculate residual diagnostics
+  const diagnostics = calculateResidualDiagnostics(regressionResult.residuals, data.length, optimalLags, trend);
+
+  return {
+    adfStatistic,
+    pValue,
+    criticalValues,
+    lagLength: optimalLags,
+    obs: regressionResult.obs,
+    trend: trend === 'ct' ? 'Constant, Linear Trend' : trend === 'c' ? 'Constant' : trend === 'ctt' ? 'Constant, Linear Trend, Quadratic Trend' : 'None',
+    maxLags: maxLagsOption,
+    conclusion,
+    regressionCoefficients: regressionResult.coefficients,
+    diagnostics,
+  };
+}
+
+function calculateADFSIC(data: number[], lags: number, trend: string): number {
+  const result = runADFRegression(data, lags, trend);
+  const n = result.obs;
+  const rss = result.residuals.reduce((a, b) => a + b * b, 0);
+  const k = result.coefficients.length; // number of parameters
+  return n * Math.log(rss / n) + k * Math.log(n);
+}
+
+function runADFRegression(
+  data: number[],
+  lags: number,
+  trend: string
+): {
+  gammaTStat: number;
+  residuals: number[];
+  obs: number;
+  coefficients: { variable: string; coefficient: number; stdError: number; tStat: number; pValue: number }[];
+} {
+  const n = data.length;
+  // Create differenced series: Δy_t = y_t - y_{t-1}
+  const diff = [];
+  for (let i = 1; i < n; i++) {
+    diff.push(data[i] - data[i - 1]);
+  }
+  
+  const maxLag = lags;
+  const startIdx = maxLag; // We lose maxLag observations for lagged differences
+  
+  // Dependent variable: Δy_t (from startIdx to end)
+  const y = diff.slice(startIdx);
+  const obs = y.length;
+  
+  if (obs < 5) {
+    throw new Error('Insufficient observations after lagging');
+  }
+  
+  // Build design matrix X
+  const X: number[][] = [];
+  const varNames: string[] = [];
+  
+  // Constant
+  const hasConstant = trend !== 'nc';
+  if (hasConstant) {
+    varNames.push('C');
+  }
+  
+  // Time trend
+  const hasTrend = trend === 'ct' || trend === 'ctt';
+  if (hasTrend) {
+    varNames.push('@TREND');
+  }
+  
+  // Quadratic trend
+  if (trend === 'ctt') {
+    varNames.push('@TREND^2');
+  }
+  
+  // Lagged level: y_{t-1}
+  varNames.push('Y(-1)');
+  
+  // Lagged differences: Δy_{t-1}, Δy_{t-2}, ...
+  for (let i = 1; i <= maxLag; i++) {
+    varNames.push(`D(Y(-${i}))`);
+  }
+  
+  const k = varNames.length;
+  
+  // Build X matrix
+  for (let i = 0; i < obs; i++) {
+    const row: number[] = [];
+    const t = startIdx + i; // actual time index in diff array
+    const actualIdx = t + 1; // actual index in original data
+    
+    let colIdx = 0;
+    if (hasConstant) row[colIdx++] = 1;
+    if (hasTrend) row[colIdx++] = actualIdx;
+    if (trend === 'ctt') row[colIdx++] = actualIdx * actualIdx;
+    
+    // Lagged level y_{t-1}
+    row[colIdx++] = data[actualIdx - 1];
+    
+    // Lagged differences
+    for (let lag = 1; lag <= maxLag; lag++) {
+      row[colIdx++] = diff[t - lag];
+    }
+    
+    X.push(row);
+  }
+  
+  // OLS: β = (X'X)^{-1} X'y
+  const XTX = adfMultiplyMatrices(adfTranspose(X), X);
+  const XTy = adfMultiplyMatrixVector(adfTranspose(X), y);
+  const beta = adfSolveLinearSystem(XTX, XTy);
+  
+  // Calculate residuals
+  const yHat = adfMultiplyMatrixVector(X, beta);
+  const residuals = y.map((yi: number, i: number) => yi - yHat[i]);
+  
+  // Calculate standard errors
+  const rss = residuals.reduce((a: number, b: number) => a + b * b, 0);
+  const sigma2 = rss / (obs - k);
+  const XTXInv = adfInvertMatrix(XTX);
+  
+  const coefficients = beta.map((b: number, i: number) => {
+    const se = Math.sqrt(Math.max(0, sigma2 * (XTXInv[i] ? XTXInv[i][i] : 0)));
+    const tStat = se > 0 ? b / se : 0;
+    const pValue = 2 * (1 - studentTCDF(Math.abs(tStat), obs - k));
+    return {
+      variable: varNames[i],
+      coefficient: b,
+      stdError: se,
+      tStat,
+      pValue,
+    };
+  });
+  
+  // Gamma is the coefficient on Y(-1)
+  const gammaIdx = varNames.indexOf('Y(-1)');
+  const gammaTStat = gammaIdx >= 0 ? coefficients[gammaIdx].tStat : 0;
+  
+  return { gammaTStat, residuals, obs, coefficients };
+}
+
+function getADFCriticalValues(n: number, trend: string): { '1%': number; '5%': number; '10%': number } {
+  // MacKinnon (1996) approximate critical values
+  // These are interpolated from standard tables
+  const cv: Record<string, { '1%': number; '5%': number; '10%': number }> = {
+    'nc': { '1%': -2.58, '5%': -1.95, '10%': -1.62 },
+    'c': { '1%': -3.46, '5%': -2.88, '10%': -2.57 },
+    'ct': { '1%': -3.99, '5%': -3.43, '10%': -3.13 },
+    'ctt': { '1%': -4.32, '5%': -3.77, '10%': -3.45 },
+  };
+  
+  // Finite sample adjustments (rough approximation)
+  const base = cv[trend] || cv['ct'];
+  const adj = 1 + 1.5 / n;
+  
+  return {
+    '1%': base['1%'] * adj,
+    '5%': base['5%'] * adj,
+    '10%': base['10%'] * adj,
+  };
+}
+
+function calculateADFPValue(stat: number, n: number, trend: string): number {
+  // Approximate p-value using MacKinnon (1996) response surface
+  // This is a simplified approximation
+  const cv = getADFCriticalValues(n, trend);
+  if (stat <= cv['1%']) return 0.001;
+  if (stat <= cv['5%']) return 0.01;
+  if (stat <= cv['10%']) return 0.05;
+  if (stat <= 0) return 0.1 + 0.9 * (stat / cv['10%']);
+  return 0.5 + 0.5 * Math.exp(-stat);
+}
+
+function calculateResidualDiagnostics(
+  residuals: number[],
+  n: number,
+  lags: number,
+  trend: string
+): ADFTestResult['diagnostics'] {
+  const obs = residuals.length;
+  const mean = residuals.reduce((a, b) => a + b, 0) / obs;
+  const centered = residuals.map((r) => r - mean);
+  const rss = centered.reduce((a, b) => a + b * b, 0);
+  
+  // R-squared (for the ADF regression, this is pseudo R²)
+  const tss = residuals.reduce((a, b) => a + (b - mean) ** 2, 0);
+  const rSquared = tss > 0 ? 1 - rss / tss : 0;
+  const k = 4 + lags; // approximate number of parameters
+  const adjRSquared = 1 - (1 - rSquared) * (obs - 1) / (obs - k);
+  
+  // F-statistic (joint significance of lagged differences)
+  const fStatistic = (rSquared / k) / ((1 - rSquared) / (obs - k));
+  const fProb = 1 - studentTCDF(Math.sqrt(fStatistic), obs - k); // rough approx
+  
+  // Durbin-Watson
+  let dwNum = 0;
+  for (let i = 1; i < obs; i++) {
+    dwNum += (residuals[i] - residuals[i - 1]) ** 2;
+  }
+  const durbinWatson = rss > 0 ? dwNum / rss : 2;
+  
+  // AIC and SC
+  const aic = obs * Math.log(rss / obs) + 2 * k;
+  const sc = obs * Math.log(rss / obs) + k * Math.log(obs);
+  
+  // Log likelihood
+  const logLikelihood = -0.5 * obs * (Math.log(2 * Math.PI) + 1 + Math.log(rss / obs));
+  
+  // Correlogram (first 12 lags)
+  const correlogram: number[] = [];
+  for (let lag = 0; lag <= 12; lag++) {
+    if (lag === 0) {
+      correlogram.push(1);
+    } else if (lag < obs) {
+      let num = 0;
+      let den = 0;
+      for (let i = lag; i < obs; i++) {
+        num += centered[i] * centered[i - lag];
+        den += centered[i] ** 2;
+      }
+      correlogram.push(den > 0 ? num / den : 0);
+    } else {
+      correlogram.push(0);
+    }
+  }
+  
+  return {
+    rSquared,
+    adjRSquared,
+    fStatistic,
+    fProb,
+    durbinWatson,
+    aic,
+    sc,
+    logLikelihood,
+    correlogram,
+  };
+}
+
+// Helper functions for matrix operations
+function adfTranspose(m: number[][]): number[][] {
+  return m[0].map((_, i) => m.map((row) => row[i]));
+}
+
+function adfMultiplyMatrices(a: number[][], b: number[][]): number[][] {
+  const rows = a.length;
+  const cols = b[0].length;
+  const inner = b.length;
+  const result: number[][] = Array(rows).fill(null).map(() => Array(cols).fill(0));
+  for (let i = 0; i < rows; i++) {
+    for (let j = 0; j < cols; j++) {
+      for (let k = 0; k < inner; k++) {
+        result[i][j] += a[i][k] * b[k][j];
+      }
+    }
+  }
+  return result;
+}
+
+function adfMultiplyMatrixVector(m: number[][], v: number[]): number[] {
+  return m.map((row) => row.reduce((sum, val, i) => sum + val * v[i], 0));
+}
+
+function adfInvertMatrix(m: number[][]): number[][] {
+  const n = m.length;
+  const aug = m.map((row, i) => [...row, ...Array(n).fill(0).map((_, j) => (i === j ? 1 : 0))]);
+  
+  // Gaussian elimination
+  for (let i = 0; i < n; i++) {
+    // Find pivot
+    let maxRow = i;
+    for (let r = i + 1; r < n; r++) {
+      if (Math.abs(aug[r][i]) > Math.abs(aug[maxRow][i])) maxRow = r;
+    }
+    [aug[i], aug[maxRow]] = [aug[maxRow], aug[i]];
+    
+    const pivot = aug[i][i];
+    if (Math.abs(pivot) < 1e-10) throw new Error('Matrix is singular');
+    
+    // Normalize pivot row
+    for (let j = 0; j < 2 * n; j++) aug[i][j] /= pivot;
+    
+    // Eliminate other rows
+    for (let r = 0; r < n; r++) {
+      if (r !== i) {
+        const factor = aug[r][i];
+        for (let j = 0; j < 2 * n; j++) {
+          aug[r][j] -= factor * aug[i][j];
+        }
+      }
+    }
+  }
+  
+  return aug.map((row) => row.slice(n));
+}
+
+function adfSolveLinearSystem(A: number[][], b: number[]): number[] {
+  const AInv = adfInvertMatrix(A);
+  return adfMultiplyMatrixVector(AInv, b);
+}
+
+function studentTCDF(t: number, df: number): number {
+  // Approximation of Student's t CDF using regularized incomplete beta
+  // For large df, approximate with normal
+  if (df > 100) return 0.5 * (1 + erf(t / Math.sqrt(2)));
+  
+  // Use symmetry
+  if (t < 0) return 1 - studentTCDF(-t, df);
+  
+  // Approximation using Beta function
+  const x = df / (df + t * t);
+  // Simple approximation for the regularized incomplete beta I_x(a, b)
+  // where a = df/2, b = 0.5
+  // This is a rough approximation
+  return 1 - 0.5 * Math.pow(x, df / 2) * (1 + (df * t * t) / (2 * (df + 2)));
+}
+
+// Error function approximation (since Math.erf may not be available)
+function erf(x: number): number {
+  // Abramowitz and Stegun approximation
+  const sign = x < 0 ? -1 : 1;
+  x = Math.abs(x);
+  const a1 =  0.254829592;
+  const a2 = -0.284496736;
+  const a3 =  1.421413741;
+  const a4 = -1.453152027;
+  const a5 =  1.061405429;
+  const p  =  0.3275911;
+  
+  const t = 1.0 / (1.0 + p * x);
+  const y = 1.0 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-x * x);
+  return sign * y;
+}
+
+// ====================================================================
+// 9. SYNTAX & SCRIPT EXPORTER (Section 16.6)
+// ====================================================================
+
+// ====================================================================
+// 9. SYNTAX & SCRIPT EXPORTER (Section 16.6)
+// ====================================================================
+// ====================================================================
+// 8. SYNTAX & SCRIPT EXPORTER (Section 16.6)
+// ====================================================================
 // ====================================================================
 // 8. SYNTAX & SCRIPT EXPORTER (Section 16.6)
 // ====================================================================

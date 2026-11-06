@@ -7,34 +7,34 @@
   }
 
   body {
-    background-color: #030712;
-    color: #f3f4f6;
+    background-color: #F9FAFB;
+    color: #101828;
     overflow-x: hidden;
   }
 
-  /* Custom high-performance dark theme scrollbars */
+  /* Custom light theme scrollbars */
   ::-webkit-scrollbar {
     width: 8px;
     height: 8px;
   }
 
   ::-webkit-scrollbar-track {
-    background: #0b0f19;
+    background: #F9FAFB;
   }
 
   ::-webkit-scrollbar-thumb {
-    background: #1f293d;
+    background: #E5E7EB;
     border-radius: 4px;
-    border: 2px solid #0b0f19;
+    border: 2px solid #F9FAFB;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: #374151;
+    background: #14B8A6;
   }
 
   /* Focus ring style for keyboard accessibility */
   *:focus-visible {
-    outline: 2px solid #06b6d4;
+    outline: 2px solid #14B8A6;
     outline-offset: 2px;
   }
 }

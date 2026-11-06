@@ -13,6 +13,7 @@ import { ViewView } from "./components/TabViews"
 import { HelpView } from "./components/TabViews"
 import DescriptiveTab from "./components/DescriptiveTab.jsx";
 const RIBBON: Record<string,string[]> = {
+  Descriptive: ["Frequencies","Descriptives","Explore","Crosstabs","Ratio","P-P Plots","Q-Q Plots"],
   SPSS: ["Frequencies","Descriptives","Explore","Crosstabs","Means","One-Sample T","Independent T","Paired T","One-Way ANOVA"],
   "Compare Means": ["Means","One-Sample T","Independent T","Paired T","One-Way ANOVA"],
   "General Linear": ["Univariate GLM","Multivariate MANOVA","Repeated Measures","ANCOVA"],
@@ -34,7 +35,7 @@ export default function App(){
   const [open, setOpen] = useState<string|null>(null)
   const [sel, setSel] = useState("CFO View WF94")
   const [activeTop, setActiveTop] = useState("ANALYTICS")
-  const topTabs = ["FILE","HOME","INTAKE","TRIAGE","INVESTIGATION","RESOLUTION","ANALYTICS","QUALITY","INDUSTRIAL","AUTOMATION","ADD-INS","VIEW","HELP","DESCRIPTIVE"]
+const topTabs = ["FILE","HOME","INTAKE","TRIAGE","INVESTIGATION","RESOLUTION","ANALYTICS","QUALITY","INDUSTRIAL","AUTOMATION","ADD-INS","VIEW","HELP"]
 
   return (
     <div style={{fontFamily:"Inter, system-ui", background:"#EEF2F6", minHeight:"100vh", color:"#101828"}}>
@@ -108,7 +109,6 @@ case "INDUSTRIAL": return <IndustrialAutomationView />;
               case "ADD-INS": return <AddInsView />;
               case "VIEW": return <ViewView />;
               case "HELP": return <HelpView />;
-              case "DESCRIPTIVE": return <DescriptiveTab />;
               default: return <AnalyticsView />;
             }
           })()}

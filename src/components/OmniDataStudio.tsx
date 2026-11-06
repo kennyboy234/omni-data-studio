@@ -1,5 +1,6 @@
 import { masterDocument, parseMasterWorkflows, functionsToCSV, calculatePSI } from '../utils/complaintHub';
 import { ComplaintActionPanel, FormulaBrowser, PLCTagBrowser, NewComplaintForm, AddinConfigForm } from './ComplaintHubPanels';
+import { SPSSFrequenciesOutput, EViewsADFOutput } from './SPSS_EViews_Output';
 import React, { useState, useMemo, useEffect } from 'react';
 import {
   Search,
@@ -54,7 +55,6 @@ import {
   HardDrive,
   Share2,
 } from 'lucide-react';
-
 export const TABS = [
   'FILE',
   'HOME',
@@ -417,12 +417,15 @@ export const OmniDataStudio: React.FC<OmniDataStudioProps> = ({
   onOpenBrain,
   onSwitchStudioMode,
 }) => {
-  const [activeTab, setActiveTab] = useState<OmniTab>('HOME');
+const [activeTab, setActiveTab] = useState<OmniTab>('HOME');
   const [search, setSearch] = useState<string>('');
   const [factory, setFactory] = useState<string>('Factory 12');
   const [addinFrequency, setAddinFrequency] = useState<number>(100);
   const [selectedFilter, setSelectedFilter] = useState<string>('Active');
   const [records, setRecords] = useState<ComplaintRecord[]>(INITIAL_RECORDS);
+  const [copyExportNotice, setCopyExportNotice] = useState<string | null>(null);
+  const [selectedRecord, setSelectedRecord] = useState<ComplaintRecord | null>(null);
+  const [selectedAddin, setSelectedAddin] = useState<string | null>(null);
 
   // Modals state
   const [modalType, setModalType] = useState<
@@ -447,17 +450,12 @@ export const OmniDataStudio: React.FC<OmniDataStudioProps> = ({
     | 'addins_configure'
   >(null);
 
+  // Analytics tab: second ribbon dropdown state
+  const [analyticsDropdown, setAnalyticsDropdown] = useState<string | null>(null);
+  const [analyticsOutput, setAnalyticsOutput] = useState<'frequencies' | 'adf' | null>(null);
   const [selectedFunction, setSelectedFunction] = useState<DetailedFunction>(CORE_120_WORKFLOWS[0]);
-  const [selectedRecord, setSelectedRecord] = useState<ComplaintRecord | null>(null);
-  const [selectedAddin, setSelectedAddin] = useState<string>('Siemens S7-1500 PLC Pack');
-  const [copyExportNotice, setCopyExportNotice] = useState<string | null>(null);
-
-  // Copilot Chat inside Right Column
   const [copilotMessages, setCopilotMessages] = useState<Array<{ role: 'user' | 'assistant'; text: string }>>([
-    {
-      role: 'assistant',
-      text: "OmniCopilot online. You've preserved $1,249,000 across 5 mitigated faults. Net ROI 940%, breakeven 18 days. Trust Receipt #142 hashed on ledger.",
-    },
+    { role: 'assistant', text: "OmniCopilot online. You've preserved $1,249,000 across 5 mitigated faults. Net ROI 940%, breakeven 18 days. Trust Receipt #142 hashed on ledger." },
   ]);
   const [copilotInput, setCopilotInput] = useState<string>('');
   const [isCopilotLoading, setIsCopilotLoading] = useState<boolean>(false);
@@ -467,8 +465,6 @@ export const OmniDataStudio: React.FC<OmniDataStudioProps> = ({
   const [simChannel, setSimChannel] = useState<string>('CSV / Excel');
   const [simPayload, setSimPayload] = useState<string>('Facility 12 Line 7 Hydraulic pressure dropped 18 psi');
   const [simResult, setSimResult] = useState<string | null>(null);
-
-  // Filtered function search results (up to 40 items displayed cleanly)
   const searchResults = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return [];
@@ -1716,13 +1712,14 @@ export const OmniDataStudio: React.FC<OmniDataStudioProps> = ({
             </div>
           )}
 
-          {/* TAB 7: ANALYTICS */}
+{/* TAB 7: ANALYTICS */}
           {activeTab === 'ANALYTICS' && (
             <div className="space-y-3">
+              {/* Header */}
               <div className="bg-white border border-[#E5E7EB] rounded-xl p-3.5 shadow-2xs">
                 <div className="flex justify-between items-center">
                   <h2 className="font-bold text-sm text-[#111827]">
-                    ANALYTICS TAB — S2 BRAIN + S4 ROI ENGINE ($1,249,000 Preserved)
+                    ANALYTICS TAB — SPSS / EViews Studio
                   </h2>
                   <button
                     onClick={() => setModalType('export')}
@@ -1732,58 +1729,217 @@ export const OmniDataStudio: React.FC<OmniDataStudioProps> = ({
                   </button>
                 </div>
                 <p className="text-xs text-[#6B7280] mt-0.5">
-                  Integrated telemetry watchtower and executive money printer.
+                  Descriptive statistics, unit-root tests, and time-series modelling with SPSS/EViews–style output.
                 </p>
               </div>
 
-              <div className="bg-[#0B1220] text-white rounded-xl p-3.5 border border-[#1F2937] space-y-3">
-                <div className="flex gap-2 text-[10px] flex-wrap">
-                  <span className="bg-[#14B8A6] px-2 py-0.5 rounded font-semibold text-white">All 4 Units</span>
-                  <span className="border border-gray-700 px-2 py-0.5 rounded text-gray-300">
-                    WF05 Drift Watchtower PSI&gt;0.25
-                  </span>
-                  <span className="border border-gray-700 px-2 py-0.5 rounded text-gray-300">WF06 Anomaly Pulse</span>
-                  <span className="border border-gray-700 px-2 py-0.5 rounded text-gray-300">WF10 Causal Graph</span>
-                  <span className="border border-gray-700 px-2 py-0.5 rounded text-gray-300">WF11 Manifold 3D</span>
-                  <span className="bg-[#F59E0B]/20 border border-[#F59E0B] px-2 py-0.5 rounded text-amber-300">
-                    DEMO_MODE=true badge
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
-                  <div className="bg-[#111827] p-3 rounded-lg border border-[#1F2937] space-y-2">
-                    <div className="text-xs text-[#14B8A6] font-bold">WF05 BRAIN TELEMETRY IDLE — Continuous PSI & KS-test</div>
-                    <div className="text-[10px] text-[#9CA3AF] leading-relaxed">
-                      Feature Drift Matrix: <code>payment_latency_ms</code> Shift +1.1% Threshold PSI &gt; 0.25 — Zero data leakage across partitions
-                    </div>
-                    <div className="flex gap-1.5 pt-1">
-                      <button
-                        onClick={() => {
-                          runDriftScan(false);
-                        }}
-                        className="bg-[#14B8A6] hover:bg-[#0D9488] text-white px-2.5 py-1 rounded text-[10px] font-semibold cursor-pointer"
-                      >
-                        Scan Telemetry
-                      </button>
-                      <button
-                        onClick={() => runDriftScan(true)}
-                        className="bg-[#1F2937] border border-[#374151] hover:bg-gray-800 text-gray-200 px-2.5 py-1 rounded text-[10px] cursor-pointer"
-                      >
-                        Inject Drift
-                      </button>
-                    </div>
+              {/* Second Ribbon — Dropdown Buttons */}
+              <div className="bg-white border border-[#E5E7EB] rounded-xl p-3 shadow-2xs">
+                <div className="flex flex-wrap gap-2">
+                  {/* Descriptive Dropdown */}
+                  <div className="relative">
+                    <button
+                      onClick={() => setAnalyticsDropdown(analyticsDropdown === 'descriptive' ? null : 'descriptive')}
+                      className={`px-3 py-1.5 text-xs font-semibold rounded border cursor-pointer transition-colors ${
+                        analyticsDropdown === 'descriptive'
+                          ? 'bg-[#14B8A6] border-[#14B8A6] text-white'
+                          : 'bg-white border-[#E5E7EB] text-[#111827] hover:bg-gray-50'
+                      }`}
+                    >
+                      Descriptive ▼
+                    </button>
+                    {analyticsDropdown === 'descriptive' && (
+                      <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-[#E5E7EB] rounded-lg shadow-lg min-w-[160px] py-1">
+                        <button
+                          onClick={() => {
+                            setAnalyticsOutput('frequencies');
+                            setAnalyticsDropdown(null);
+                          }}
+                          className="w-full px-3 py-1.5 text-left text-xs text-[#111827] hover:bg-gray-50 cursor-pointer"
+                        >
+                          Frequencies
+                        </button>
+                        <button
+                          onClick={() => setAnalyticsDropdown(null)}
+                          className="w-full px-3 py-1.5 text-left text-xs text-[#111827] hover:bg-gray-50 cursor-pointer"
+                        >
+                          Descriptives
+                        </button>
+                        <button
+                          onClick={() => setAnalyticsDropdown(null)}
+                          className="w-full px-3 py-1.5 text-left text-xs text-[#111827] hover:bg-gray-50 cursor-pointer"
+                        >
+                          Explore
+                        </button>
+                        <button
+                          onClick={() => setAnalyticsDropdown(null)}
+                          className="w-full px-3 py-1.5 text-left text-xs text-[#111827] hover:bg-gray-50 cursor-pointer"
+                        >
+                          Crosstabs
+                        </button>
+                      </div>
+                    )}
                   </div>
 
-                  <div className="bg-[#111827] p-3 rounded-lg border border-[#1F2937] space-y-2">
-                    <div className="text-xs text-white font-bold">$1,249,000 preserved — 5 faults mitigated — ROI 940%</div>
-                    <div className="text-[10px] text-[#9CA3AF] leading-relaxed">
-                      Loss By Mode $42,580 -8.1% Breakeven 18 days SLA 92% — S4 ROI ENGINE WF81-WF100 Money Printer
-                    </div>
-                    <div className="text-[10px] font-mono bg-[#0B1220] p-2 rounded border border-gray-800 text-teal-300">
-                      =LOSS_BY_MODE() =MTBF() =ROI() — fx Formula 1,247 functions under GROUP5
-                    </div>
+                  {/* Compare Means Dropdown */}
+                  <div className="relative">
+                    <button
+                      onClick={() => setAnalyticsDropdown(analyticsDropdown === 'compare_means' ? null : 'compare_means')}
+                      className={`px-3 py-1.5 text-xs font-semibold rounded border cursor-pointer transition-colors ${
+                        analyticsDropdown === 'compare_means'
+                          ? 'bg-[#14B8A6] border-[#14B8A6] text-white'
+                          : 'bg-white border-[#E5E7EB] text-[#111827] hover:bg-gray-50'
+                      }`}
+                    >
+                      Compare Means ▼
+                    </button>
+                    {analyticsDropdown === 'compare_means' && (
+                      <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-[#E5E7EB] rounded-lg shadow-lg min-w-[180px] py-1">
+                        <button className="w-full px-3 py-1.5 text-left text-xs text-[#111827] hover:bg-gray-50 cursor-pointer">Means</button>
+                        <button className="w-full px-3 py-1.5 text-left text-xs text-[#111827] hover:bg-gray-50 cursor-pointer">One-Sample T Test</button>
+                        <button className="w-full px-3 py-1.5 text-left text-xs text-[#111827] hover:bg-gray-50 cursor-pointer">Independent-Samples T Test</button>
+                        <button className="w-full px-3 py-1.5 text-left text-xs text-[#111827] hover:bg-gray-50 cursor-pointer">Paired-Samples T Test</button>
+                        <button className="w-full px-3 py-1.5 text-left text-xs text-[#111827] hover:bg-gray-50 cursor-pointer">One-Way ANOVA</button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* General Linear Dropdown */}
+                  <div className="relative">
+                    <button
+                      onClick={() => setAnalyticsDropdown(analyticsDropdown === 'general_linear' ? null : 'general_linear')}
+                      className={`px-3 py-1.5 text-xs font-semibold rounded border cursor-pointer transition-colors ${
+                        analyticsDropdown === 'general_linear'
+                          ? 'bg-[#14B8A6] border-[#14B8A6] text-white'
+                          : 'bg-white border-[#E5E7EB] text-[#111827] hover:bg-gray-50'
+                      }`}
+                    >
+                      General Linear ▼
+                    </button>
+                    {analyticsDropdown === 'general_linear' && (
+                      <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-[#E5E7EB] rounded-lg shadow-lg min-w-[180px] py-1">
+                        <button className="w-full px-3 py-1.5 text-left text-xs text-[#111827] hover:bg-gray-50 cursor-pointer">Univariate</button>
+                        <button className="w-full px-3 py-1.5 text-left text-xs text-[#111827] hover:bg-gray-50 cursor-pointer">Multivariate</button>
+                        <button className="w-full px-3 py-1.5 text-left text-xs text-[#111827] hover:bg-gray-50 cursor-pointer">Repeated Measures</button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Unit Root Dropdown */}
+                  <div className="relative">
+                    <button
+                      onClick={() => setAnalyticsDropdown(analyticsDropdown === 'unit_root' ? null : 'unit_root')}
+                      className={`px-3 py-1.5 text-xs font-semibold rounded border cursor-pointer transition-colors ${
+                        analyticsDropdown === 'unit_root'
+                          ? 'bg-[#14B8A6] border-[#14B8A6] text-white'
+                          : 'bg-white border-[#E5E7EB] text-[#111827] hover:bg-gray-50'
+                      }`}
+                    >
+                      Unit Root ▼
+                    </button>
+                    {analyticsDropdown === 'unit_root' && (
+                      <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-[#E5E7EB] rounded-lg shadow-lg min-w-[180px] py-1">
+                        <button
+                          onClick={() => {
+                            setAnalyticsOutput('adf');
+                            setAnalyticsDropdown(null);
+                          }}
+                          className="w-full px-3 py-1.5 text-left text-xs text-[#111827] hover:bg-gray-50 cursor-pointer"
+                        >
+                          ADF Test
+                        </button>
+                        <button className="w-full px-3 py-1.5 text-left text-xs text-[#111827] hover:bg-gray-50 cursor-pointer">PP Test</button>
+                        <button className="w-full px-3 py-1.5 text-left text-xs text-[#111827] hover:bg-gray-50 cursor-pointer">KPSS Test</button>
+                        <button className="w-full px-3 py-1.5 text-left text-xs text-[#111827] hover:bg-gray-50 cursor-pointer">ERS Test</button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Cointegration Dropdown */}
+                  <div className="relative">
+                    <button
+                      onClick={() => setAnalyticsDropdown(analyticsDropdown === 'cointegration' ? null : 'cointegration')}
+                      className={`px-3 py-1.5 text-xs font-semibold rounded border cursor-pointer transition-colors ${
+                        analyticsDropdown === 'cointegration'
+                          ? 'bg-[#14B8A6] border-[#14B8A6] text-white'
+                          : 'bg-white border-[#E5E7EB] text-[#111827] hover:bg-gray-50'
+                      }`}
+                    >
+                      Cointegration ▼
+                    </button>
+                    {analyticsDropdown === 'cointegration' && (
+                      <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-[#E5E7EB] rounded-lg shadow-lg min-w-[200px] py-1">
+                        <button className="w-full px-3 py-1.5 text-left text-xs text-[#111827] hover:bg-gray-50 cursor-pointer">Engle-Granger</button>
+                        <button className="w-full px-3 py-1.5 text-left text-xs text-[#111827] hover:bg-gray-50 cursor-pointer">Johansen Trace</button>
+                        <button className="w-full px-3 py-1.5 text-left text-xs text-[#111827] hover:bg-gray-50 cursor-pointer">Johansen Max-Eigen</button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* GARCH Dropdown */}
+                  <div className="relative">
+                    <button
+                      onClick={() => setAnalyticsDropdown(analyticsDropdown === 'garch' ? null : 'garch')}
+                      className={`px-3 py-1.5 text-xs font-semibold rounded border cursor-pointer transition-colors ${
+                        analyticsDropdown === 'garch'
+                          ? 'bg-[#14B8A6] border-[#14B8A6] text-white'
+                          : 'bg-white border-[#E5E7EB] text-[#111827] hover:bg-gray-50'
+                      }`}
+                    >
+                      GARCH ▼
+                    </button>
+                    {analyticsDropdown === 'garch' && (
+                      <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-[#E5E7EB] rounded-lg shadow-lg min-w-[180px] py-1">
+                        <button className="w-full px-3 py-1.5 text-left text-xs text-[#111827] hover:bg-gray-50 cursor-pointer">GARCH(1,1)</button>
+                        <button className="w-full px-3 py-1.5 text-left text-xs text-[#111827] hover:bg-gray-50 cursor-pointer">EGARCH</button>
+                        <button className="w-full px-3 py-1.5 text-left text-xs text-[#111827] hover:bg-gray-50 cursor-pointer">TGARCH</button>
+                        <button className="w-full px-3 py-1.5 text-left text-xs text-[#111827] hover:bg-gray-50 cursor-pointer">APARCH</button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Pengineering Dropdown */}
+                  <div className="relative">
+                    <button
+                      onClick={() => setAnalyticsDropdown(analyticsDropdown === 'pengineering' ? null : 'pengineering')}
+                      className={`px-3 py-1.5 text-xs font-semibold rounded border cursor-pointer transition-colors ${
+                        analyticsDropdown === 'pengineering'
+                          ? 'bg-[#14B8A6] border-[#14B8A6] text-white'
+                          : 'bg-white border-[#E5E7EB] text-[#111827] hover:bg-gray-50'
+                      }`}
+                    >
+                      Pengineering ▼
+                    </button>
+                    {analyticsDropdown === 'pengineering' && (
+                      <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-[#E5E7EB] rounded-lg shadow-lg min-w-[180px] py-1">
+                        <button className="w-full px-3 py-1.5 text-left text-xs text-[#111827] hover:bg-gray-50 cursor-pointer">Weibull Analysis</button>
+                        <button className="w-full px-3 py-1.5 text-left text-xs text-[#111827] hover:bg-gray-50 cursor-pointer">Accelerated Life</button>
+                        <button className="w-full px-3 py-1.5 text-left text-xs text-[#111827] hover:bg-gray-50 cursor-pointer">Reliability Growth</button>
+                        <button className="w-full px-3 py-1.5 text-left text-xs text-[#111827] hover:bg-gray-50 cursor-pointer">FMEA Integration</button>
+                      </div>
+                    )}
                   </div>
                 </div>
+              </div>
+
+              {/* Center Output Area — Conditional Rendering */}
+              <div className="space-y-3">
+                {analyticsOutput === 'frequencies' && (
+                  <SPSSFrequenciesOutput data={records as any} onClose={() => setAnalyticsOutput(null)} />
+                )}
+                {analyticsOutput === 'adf' && (
+                  <EViewsADFOutput data={records as any} onClose={() => setAnalyticsOutput(null)} />
+                )}
+                {analyticsOutput === null && (
+                  <div className="bg-white border border-[#E5E7EB] rounded-xl p-6 shadow-2xs text-center text-gray-500">
+                    <div className="text-4xl mb-2">📊</div>
+                    <p className="font-medium text-gray-700">Select an analysis from the ribbon above</p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      Descriptive → Frequencies for SPSS-style output<br />
+                      Unit Root → ADF Test for EViews-style output
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -2557,7 +2713,7 @@ export const OmniDataStudio: React.FC<OmniDataStudioProps> = ({
             {/* ADDINS CONFIGURE MODAL */}
             {modalType === 'addins_configure' && (
               <AddinConfigForm
-                name={selectedAddin}
+                name={selectedAddin || ''}
                 value={addinFrequency}
                 onSave={(frequency) => {
                   setAddinFrequency(frequency);
