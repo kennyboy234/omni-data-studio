@@ -35,7 +35,8 @@ export default function App(){
   const [open, setOpen] = useState<string|null>(null)
   const [sel, setSel] = useState("CFO View WF94")
   const [activeTop, setActiveTop] = useState("ANALYTICS")
-const topTabs = ["FILE","HOME","INTAKE","TRIAGE","INVESTIGATION","RESOLUTION","ANALYTICS","QUALITY","INDUSTRIAL","AUTOMATION","ADD-INS","VIEW","HELP"]
+  const [activeAnalysis, setActiveAnalysis] = useState("ANALYTICS_HOME")
+  const topTabs = ["FILE","HOME","INTAKE","TRIAGE","INVESTIGATION","RESOLUTION","ANALYTICS","QUALITY","INDUSTRIAL","AUTOMATION","ADD-INS","VIEW","HELP"]
 
   return (
     <div style={{fontFamily:"Inter, system-ui", background:"#EEF2F6", minHeight:"100vh", color:"#101828"}}>
@@ -66,8 +67,13 @@ const topTabs = ["FILE","HOME","INTAKE","TRIAGE","INVESTIGATION","RESOLUTION","A
             </button>
             {open===k && (
               <div style={{position:"absolute", top:"100%", left:0, width:"300px", background:"#FFF", border:"1px solid #E5E7EB", borderRadius:"8px", boxShadow:"0 8px 24px rgba(0,0,0,0.12)", zIndex:50, maxHeight:"280px", overflowY:"auto"}}>
-                {RIBBON[k].map(it=>(
-                  <div key={it} data-testid={`menu-${it.toLowerCase().replace(/[^a-z0-9]+/g,'-')}`} onClick={()=>{setSel(it); setOpen(null)}} style={{padding:"8px 12px", fontSize:"12px", cursor:"pointer", borderBottom:"1px solid #F3F4F6"}}>{it}</div>
+{RIBBON[k].map(it=>(
+                  <div key={it} data-testid={`menu-${it.toLowerCase().replace(/[^a-z0-9]+/g,'-')}`} onClick={()=>{
+                    if (k === "Descriptive") { setActiveTop("ANALYTICS"); setActiveAnalysis("DESCRIPTIVE"); }
+                    else if (k === "SPSS") { setActiveTop("ANALYTICS"); setActiveAnalysis("SPSS"); }
+                    else { setActiveAnalysis("ANALYTICS_HOME"); }
+                    setSel(it); setOpen(null)
+                  }} style={{padding:"8px 12px", fontSize:"12px", cursor:"pointer", borderBottom:"1px solid #F3F4F6"}}>{it}</div>
                 ))}
               </div>
             )}
@@ -94,7 +100,9 @@ const topTabs = ["FILE","HOME","INTAKE","TRIAGE","INVESTIGATION","RESOLUTION","A
         </div>
 
         <div style={{flex:1, display:"flex", flexDirection:"column", gap:"12px"}}>
-          {(() => {
+{(() => {
+            if (activeTop === "ANALYTICS" && activeAnalysis === "DESCRIPTIVE") return <DescriptiveTab />
+            if (activeTop === "ANALYTICS" && activeAnalysis === "SPSS") return <div style={{background:"#FFF", border:"1px solid #E5E7EB", borderRadius:12, padding:16}}>SPSS Dashboard - Coming Next</div>
             switch(activeTop) {
               case "FILE": return <FileView />;
               case "HOME": return <HomeView />;
@@ -104,7 +112,7 @@ const topTabs = ["FILE","HOME","INTAKE","TRIAGE","INVESTIGATION","RESOLUTION","A
               case "RESOLUTION": return <ResolutionView />;
               case "ANALYTICS": return <AnalyticsView />;
               case "QUALITY": return <QualityView />;
-case "INDUSTRIAL": return <IndustrialAutomationView />;
+	case "INDUSTRIAL": return <IndustrialAutomationView />;
               case "AUTOMATION": return <IndustrialAutomationView />;
               case "ADD-INS": return <AddInsView />;
               case "VIEW": return <ViewView />;
