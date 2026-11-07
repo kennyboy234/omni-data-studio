@@ -10,13 +10,14 @@ export default function DescriptiveTab() {
   const [result, setResult] = useState(null);
   const [resultType, setResultType] = useState("");
   const [message, setMessage] = useState("");
+  const [viewerTab, setViewerTab] = useState("table");
 
   const handleLoadTestData = () => { setData(testData); setMessage("Test Data Loaded - N=" + testData.length); };
-  const handleFrequencies = () => { if (data.length === 0) { setMessage("Please click Load Test Data first"); return; } const res = runFrequencies(data, variable); setResult(res); setResultType("frequencies"); setMessage("Frequencies done - Total " + res.Total); };
+  const handleFrequencies = () => { if (data.length === 0) { setMessage("Please click Load Test Data first"); return; } const res = runFrequencies(data, variable); setResult(res); setResultType("frequencies"); setViewerTab("table"); setMessage("Frequencies done - Total " + res.Total); };
   const handleDescriptives = () => { if (data.length === 0) { setMessage("Please click Load Test Data first"); return; } const res = runDescriptives(data, variable); setResult(res); setResultType("descriptives"); setMessage("Descriptives done"); };
   const handleExplore = () => { if (data.length === 0) { setMessage("Please click Load Test Data first"); return; } const res = runExplore(data, variable); setResult(res); setResultType("explore"); setMessage("Explore done"); };
   const handleCrosstabs = () => { if (data.length === 0) { setMessage("Please click Load Test Data first"); return; } const res = runCrosstabs(data, rowVar, colVar); setResult(res); setResultType("crosstabs"); setMessage("Crosstabs done"); };
-  const handleClear = () => { setResult(null); setResultType(""); setMessage(""); };
+  const handleClear = () => { setResult(null); setResultType(""); setMessage(""); setViewerTab("table"); };
 
   const kpiN = data.length;
   const kpiVariables = useMemo(() => data.length > 0 ? Object.keys(data[0]).length : 0, [data]);
@@ -29,6 +30,9 @@ export default function DescriptiveTab() {
   const buttonWhite = { background: "#FFF", color: "#101828", border: "1px solid #E5E7EB", borderRadius: 8, padding: "10px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer" };
   const buttonDark = { background: "#101828", color: "#FFF", border: "none", borderRadius: 8, padding: "10px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer" };
   const selectStyle = { border: "1px solid #E5E7EB", borderRadius: 8, padding: "8px 12px", fontSize: 13, background: "#FFF", minWidth: 200 };
+  const activeTabStyle = { background: "#101828", color: "#FFF", borderRadius: 8, padding: "6px 12px", fontSize: 13, fontWeight: 600, cursor: "pointer" };
+  const inactiveTabStyle = { background: "#FFF", color: "#101828", border: "1px solid #E5E7EB", borderRadius: 8, padding: "6px 12px", fontSize: 13, fontWeight: 600, cursor: "pointer" };
+  const descriptiveKpiStyle = { ...cardStyle, flex: 1, minWidth: 130, textAlign: "center" };
 
   return (
     <div style={{ background: "#EEF2F6", minHeight: "100vh", padding: "24px", fontFamily: "Inter, system-ui" }}>
@@ -103,8 +107,28 @@ export default function DescriptiveTab() {
       {/* CARD 3 - RESULTS */}
       <div style={{ ...cardStyle, maxHeight: 400, overflowY: "auto" }}>
         <div style={{ fontSize: 14, fontWeight: 700, color: "#101828", marginBottom: 12 }}>Results - Visible Here</div>
+        
+        {/* Viewer Tabs - only for Frequencies */}
+        {resultType === "frequencies" && (
+          <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+            <button 
+              onClick={() => setViewerTab("table")}
+              style={viewerTab === "table" ? activeTabStyle : inactiveTabStyle}
+            >
+              Table View
+            </button>
+            <button 
+              onClick={() => setViewerTab("chart")}
+              style={viewerTab === "chart" ? activeTabStyle : inactiveTabStyle}
+            >
+              Chart View
+            </button>
+          </div>
+        )}
+
         {!result && <p style={{ color: "#667085", fontSize: 13 }}>No results yet. Click Load Test Data, then Run.</p>}
-        {result && resultType === "frequencies" && (
+        
+        {result && resultType === "frequencies" && viewerTab === "table" && (
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ borderBottom: "1px solid #E5E7EB" }}>
@@ -128,13 +152,58 @@ export default function DescriptiveTab() {
             </tbody>
           </table>
         )}
-        {result && resultType === "descriptives" && (
-          <div style={{ padding: 12 }}>
-            <p style={{ color: "#101828" }}>N: {result.N} | Missing: {result.Missing}</p>
-            <p style={{ color: "#101828" }}>Mean: {result.Mean} | Median: {result.Median} | Mode: {result.Mode}</p>
-            <p style={{ color: "#101828" }}>Std: {result.Std} | Min: {result.Min} | Max: {result.Max}</p>
+
+        {result && resultType === "frequencies" && viewerTab === "chart" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {result.table.map((row, i) => (
+              <div key={i} style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <div style={{ width: 100, fontSize: 14, color: "#101828", fontWeight: 500 }}>{row.Value}</div>
+                <div style={{ flex: 1, background: "#EEF2F6", borderRadius: 8, height: 20, position: "relative" }}>
+                  <div style={{ 
+                    width: row.Percent + "%", 
+                    background: "#14B8A6", 
+                    borderRadius: 8, 
+                    height: "100%",
+                    transition: "width 0.3s ease"
+                  }} />
+                </div>
+                <div style={{ width: 60, textAlign: "right", fontSize: 14, fontWeight: 700, color: "#101828" }}>
+                  {row.Percent}%
+                </div>
+              </div>
+            ))}
           </div>
         )}
+
+        {result && resultType === "descriptives" && (
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap", padding: 4 }}>
+            <div style={descriptiveKpiStyle}>
+              <div style={{ fontSize: 11, color: "#667085", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 4 }}>Mean</div>
+              <div style={{ fontSize: 28, fontWeight: 700, color: "#101828" }}>{result.Mean}</div>
+            </div>
+            <div style={descriptiveKpiStyle}>
+              <div style={{ fontSize: 11, color: "#667085", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 4 }}>Median</div>
+              <div style={{ fontSize: 28, fontWeight: 700, color: "#101828" }}>{result.Median}</div>
+            </div>
+            <div style={descriptiveKpiStyle}>
+              <div style={{ fontSize: 11, color: "#667085", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 4 }}>Mode</div>
+              <div style={{ fontSize: 28, fontWeight: 700, color: "#101828" }}>{result.Mode}</div>
+            </div>
+            <div style={descriptiveKpiStyle}>
+              <div style={{ fontSize: 11, color: "#667085", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 4 }}>Std</div>
+              <div style={{ fontSize: 28, fontWeight: 700, color: "#101828" }}>{result.Std}</div>
+            </div>
+            <div style={descriptiveKpiStyle}>
+              <div style={{ fontSize: 11, color: "#667085", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 4 }}>Min</div>
+              <div style={{ fontSize: 28, fontWeight: 700, color: "#101828" }}>{result.Min}</div>
+            </div>
+            <div style={descriptiveKpiStyle}>
+              <div style={{ fontSize: 11, color: "#667085", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 4 }}>Max</div>
+              <div style={{ fontSize: 28, fontWeight: 700, color: "#101828" }}>{result.Max}</div>
+            </div>
+          </div>
+        )}
+
         {result && resultType === "explore" && (
           <div style={{ padding: 12 }}>
             <p style={{ color: "#101828" }}>Skewness: {result.Skewness} | Kurtosis: {result.Kurtosis}</p>
