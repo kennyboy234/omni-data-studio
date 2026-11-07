@@ -48,15 +48,15 @@ export function runFrequencies(data, variable) {
   const missing = total - valid;
   const counts = {};
   validValues.forEach((v) => { counts[v] = (counts[v] || 0) + 1; });
+  // Sort by frequency descending FIRST
+  const sortedEntries = Object.entries(counts).sort((a, b) => b[1] - a[1]);
   let cumulative = 0;
-  const table = Object.keys(counts).map((value) => {
-    const freq = counts[value];
+  const table = sortedEntries.map(([value, freq]) => {
     const percent = (freq / total) * 100;
     const validPercent = valid > 0 ? (freq / valid) * 100 : 0;
     cumulative += validPercent;
     return { Value: value, Frequency: freq, Percent: Number(percent.toFixed(1)), ValidPercent: Number(validPercent.toFixed(1)), CumulativePercent: Number(cumulative.toFixed(1)) };
   });
-  table.sort((a, b) => b.Frequency - a.Frequency);
   return { table, Total: total, Valid: valid, Missing: missing };
 }
 
